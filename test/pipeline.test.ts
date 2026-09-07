@@ -205,8 +205,13 @@ test('la verification execute reellement les commandes du projet', async () => {
     );
 
     assert.ok(result.verification.ran);
-    assert.ok(result.verification.ok, 'les commandes `true` doivent reussir');
-    assert.deepEqual(result.verification.steps.map((s) => s.name), ['install', 'test']);
+    assert.ok(result.verification.ok, 'toutes les etapes doivent reussir');
+
+    // Le plan ne declarait que install et test ; la recette Node a complete
+    // lint et build avec `--if-present`, inoffensifs quand la cible manque.
+    assert.deepEqual(result.verification.steps.map((s) => s.name), ['install', 'lint', 'build', 'test']);
+    const lint = result.verification.steps.find((s) => s.name === 'lint');
+    assert.match(lint!.command, /--if-present/);
   } finally {
     await h.cleanup();
   }

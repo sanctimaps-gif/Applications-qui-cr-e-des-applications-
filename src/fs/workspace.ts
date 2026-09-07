@@ -68,6 +68,30 @@ export class Workspace {
     }
   }
 
+  /** Supprime un fichier du projet. Le depot git lui-meme est intouchable. */
+  async remove(relative: string): Promise<boolean> {
+    const cleaned = normalizeRelPath(relative);
+    if (cleaned === '.git' || cleaned.startsWith('.git/')) {
+      throw new Error('suppression refusee dans .git');
+    }
+    const target = this.resolve(cleaned);
+    try {
+      await fs.rm(target, { recursive: false, force: false });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Taille en octets, ou undefined si le fichier n'existe pas. */
+  async size(relative: string): Promise<number | undefined> {
+    try {
+      return (await fs.stat(this.resolve(relative))).size;
+    } catch {
+      return undefined;
+    }
+  }
+
   async chmod(relative: string, mode: number): Promise<void> {
     await fs.chmod(this.resolve(relative), mode);
   }

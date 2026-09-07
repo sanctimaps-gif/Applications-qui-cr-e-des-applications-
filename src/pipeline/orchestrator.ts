@@ -8,49 +8,16 @@ import { Workspace } from '../fs/workspace.js';
 import { slugify, toError } from '../util/misc.js';
 import { GitHubClient, collectFiles } from '../git/github.js';
 import { initRepo } from '../git/local.js';
+import { findRecipe, gitignoreFor, workflowFor } from '../recipes.js';
 import { planApp } from './plan.js';
 import { generateFiles } from './generate.js';
 import { verifyProject } from './verify.js';
 import { repairLoop } from './repair.js';
 import type { AppSpec, BuildOptions, BuildResult } from './types.js';
 
-/** Workflow CI ajoute au projet genere quand `--ci` est demande. */
+/** Workflow CI adapte a l'ecosysteme du projet genere. */
 function ciWorkflow(spec: AppSpec): string {
-  const node = spec.runtime === 'node';
-  const steps = [
-    '      - uses: actions/checkout@v4',
-    ...(node
-      ? [
-          '      - uses: actions/setup-node@v4',
-          '        with:',
-          "          node-version: '20'",
-        ]
-      : spec.runtime === 'python'
-        ? [
-            '      - uses: actions/setup-python@v5',
-            '        with:',
-            "          python-version: '3.12'",
-          ]
-        : []),
-    ...(spec.commands.install ? [`      - run: ${spec.commands.install}`] : []),
-    ...(spec.commands.lint ? [`      - run: ${spec.commands.lint}`] : []),
-    ...(spec.commands.build ? [`      - run: ${spec.commands.build}`] : []),
-    ...(spec.commands.test ? [`      - run: ${spec.commands.test}`] : []),
-  ];
-
-  return `name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-${steps.join('\n')}
-`;
+  return workflowFor(findRecipe(spec.runtime, spec.language), spec.commands);
 }
 
 function forgeManifest(spec: AppSpec, options: BuildOptions, usage: unknown): string {
@@ -137,10 +104,7 @@ export async function buildApp(deps: ForgeDeps, options: BuildOptions): Promise<
     await workspace.write('.github/workflows/ci.yml', ciWorkflow(spec));
   }
   if (!(await workspace.exists('.gitignore'))) {
-    await workspace.write(
-      '.gitignore',
-      'node_modules/\ndist/\nbuild/\n.env\n__pycache__/\n*.log\n.DS_Store\n',
-    );
+    await workspace.write('.gitignore', gitignoreFor(findRecipe(spec.runtime, spec.language)));
   }
   await workspace.write('.forge.json', forgeManifest(spec, options, llm.usage));
 
@@ -204,12 +168,50 @@ export async function buildApp(deps: ForgeDeps, options: BuildOptions): Promise<
   return result;
 }
 
-/** Cree le depot GitHub et y pousse l'integralite du projet en un commit. */
+/** Sujets GitHub deduits de la pile et des fonctionnalites du projet. */
+function inferTopics(spec: AppSpec): string[] {
+  const raw = [
+    spec.language,
+    spec.runtime,
+    ...spec.stack.split(/[\s,+/()]+/),
+    ...spec.features.slice(0, 4),
+  ];
+  const seen = new Set<string>();
+  const topics: string[] = [];
+  for (const entry of raw) {
+    const topic = slugify(entry ?? '', '');
+    if (topic && topic.length >= 2 && !seen.has(topic)) {
+      seen.add(topic);
+      topics.push(topic);
+    }
+  }
+  return topics.slice(0, 12);
+}
+
+export type PublishOptions = Pick<
+  BuildOptions,
+  | 'repoName'
+  | 'repoPrivate'
+  | 'repoOwner'
+  | 'prompt'
+  | 'branch'
+  | 'pullRequest'
+  | 'release'
+  | 'topics'
+  | 'pages'
+>;
+
+/**
+ * Cree le depot GitHub et y pousse l'integralite du projet en un commit, puis
+ * applique tout ce qui a ete demande : branche dediee, pull request, sujets,
+ * release, GitHub Pages. Chaque etape optionnelle echoue isolement — une
+ * release refusee ne doit pas annuler une publication reussie.
+ */
 export async function publishProject(
   deps: ForgeDeps,
   workspace: Workspace,
   spec: AppSpec,
-  options: Pick<BuildOptions, 'repoName' | 'repoPrivate' | 'repoOwner' | 'prompt'>,
+  options: PublishOptions,
 ): Promise<NonNullable<BuildResult['repo']>> {
   const { cfg, bus } = deps;
   const client = new GitHubClient(cfg);
@@ -223,31 +225,107 @@ export async function publishProject(
     private: options.repoPrivate ?? true,
     owner,
   });
-  bus.emitEvent({ type: 'github', action: 'repo cree', url: repo.htmlUrl });
+  bus.emitEvent({ type: 'github', action: 'depot pret', url: repo.htmlUrl });
+
+  const defaultBranch = repo.defaultBranch || 'main';
+  const target = options.branch ?? defaultBranch;
+
+  // Une branche dediee n'a de sens que si la branche par defaut existe deja.
+  if (target !== defaultBranch) {
+    try {
+      await client.createBranch({ owner: repo.owner, repo: repo.name, branch: target, from: defaultBranch });
+    } catch {
+      bus.log('warn', `branche ${defaultBranch} absente, publication directe sur ${target}`);
+    }
+  }
 
   const paths = await workspace.list();
   const files = await collectFiles(workspace.root, paths);
-  const branch = repo.defaultBranch || 'main';
 
   const { commitSha } = await client.pushFiles({
     owner: repo.owner,
     repo: repo.name,
-    branch,
+    branch: target,
     message: `feat: ${spec.name}\n\nGenere par Forge.\nDemande : ${(options.prompt ?? '').slice(0, 500)}`,
     files,
   });
 
   bus.emitEvent({
     type: 'github',
-    action: `${files.length} fichiers pousses (${commitSha.slice(0, 7)})`,
+    action: `${files.length} fichiers pousses sur ${target} (${commitSha.slice(0, 7)})`,
     url: repo.htmlUrl,
   });
 
-  return {
+  const result: NonNullable<BuildResult['repo']> = {
     url: repo.htmlUrl,
     cloneUrl: repo.cloneUrl,
     owner: repo.owner,
     name: repo.name,
-    branch,
+    branch: target,
   };
+
+  const optional = async (label: string, task: () => Promise<void>): Promise<void> => {
+    try {
+      await task();
+    } catch (error) {
+      bus.log('warn', `${label} impossible: ${toError(error).message.slice(0, 200)}`);
+    }
+  };
+
+  await optional('sujets', async () => {
+    const topics = options.topics ?? inferTopics(spec);
+    if (topics.length === 0) return;
+    result.topics = await client.setTopics(repo.owner, repo.name, topics);
+    bus.emitEvent({ type: 'github', action: `sujets: ${result.topics.join(', ')}` });
+  });
+
+  if (options.pullRequest && target !== defaultBranch) {
+    await optional('pull request', async () => {
+      const pr = await client.createPullRequest({
+        owner: repo.owner,
+        repo: repo.name,
+        title: `feat: ${spec.name}`,
+        head: target,
+        base: defaultBranch,
+        body: [
+          spec.summary,
+          '',
+          `**Pile** : ${spec.stack}`,
+          spec.features.length > 0 ? `\n**Fonctionnalites**\n${spec.features.map((f) => `- ${f}`).join('\n')}` : '',
+          '',
+          '_Genere par Forge._',
+        ].join('\n'),
+      });
+      result.pullRequestUrl = pr.url;
+      bus.emitEvent({ type: 'github', action: `pull request #${pr.number}`, url: pr.url });
+    });
+  }
+
+  if (options.release) {
+    await optional('release', async () => {
+      const release = await client.createRelease({
+        owner: repo.owner,
+        repo: repo.name,
+        tag: options.release!,
+        name: `${spec.name} ${options.release}`,
+        body: `${spec.summary}\n\nPile : ${spec.stack}\n\n_Genere par Forge._`,
+        target,
+      });
+      result.releaseUrl = release.url;
+      bus.emitEvent({ type: 'github', action: `release ${release.tag}`, url: release.url });
+    });
+  }
+
+  if (options.pages) {
+    await optional('GitHub Pages', async () => {
+      const url = await client.enablePages(repo.owner, repo.name, target);
+      if (url) {
+        result.pagesUrl = url;
+        await client.updateRepo(repo.owner, repo.name, { homepage: url });
+        bus.emitEvent({ type: 'github', action: 'GitHub Pages actif', url });
+      }
+    });
+  }
+
+  return result;
 }

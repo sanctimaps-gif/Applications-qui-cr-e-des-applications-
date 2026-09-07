@@ -7,6 +7,7 @@ import { LLMClient } from '../llm/client.js';
 import { Pool } from '../util/pool.js';
 import { shortId, toError } from '../util/misc.js';
 import { buildApp } from '../pipeline/orchestrator.js';
+import { iterateProject, type IterateOptions, type IterateResult } from '../pipeline/iterate.js';
 import type { BuildOptions, BuildResult } from '../pipeline/types.js';
 
 export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
@@ -18,8 +19,12 @@ export interface Job {
   createdAt: number;
   startedAt?: number;
   finishedAt?: number;
+  /** `build` cree un projet, `iterate` fait evoluer un projet existant. */
+  kind: 'build' | 'iterate';
   options: BuildOptions;
+  iteration?: IterateOptions;
   result?: BuildResult;
+  iterationResult?: IterateResult;
   error?: string;
   events: ForgeEventEnvelope[];
 }
@@ -28,6 +33,7 @@ export interface JobSummary {
   id: string;
   prompt: string;
   status: JobStatus;
+  kind: 'build' | 'iterate';
   createdAt: number;
   startedAt: number | undefined;
   finishedAt: number | undefined;
@@ -70,6 +76,7 @@ export class JobQueue {
           id: entry.id,
           prompt: entry.prompt,
           status: entry.status === 'running' || entry.status === 'queued' ? 'cancelled' : entry.status,
+          kind: entry.kind ?? 'build',
           createdAt: entry.createdAt,
           startedAt: entry.startedAt,
           finishedAt: entry.finishedAt,
@@ -92,26 +99,41 @@ export class JobQueue {
     }
   }
 
-  submit(options: BuildOptions): Job {
+  private enqueue(job: Job): Job {
     const max = limit(this.cfg.maxProjects);
     if (this.jobs.size >= max) {
       // Uniquement si l'operateur a explicitement fixe une limite.
       throw new Error(`limite de projets atteinte (${this.cfg.maxProjects})`);
     }
+    this.jobs.set(job.id, job);
+    void this.pool.run(() => this.execute(job));
+    return job;
+  }
 
-    const id = shortId();
-    const job: Job = {
-      id,
+  submit(options: BuildOptions): Job {
+    return this.enqueue({
+      id: shortId(),
       prompt: options.prompt,
       status: 'queued',
       createdAt: Date.now(),
+      kind: 'build',
       options,
       events: [],
-    };
-    this.jobs.set(id, job);
+    });
+  }
 
-    void this.pool.run(() => this.execute(job));
-    return job;
+  /** Fait evoluer un projet existant ; suivi identique a une generation. */
+  submitIteration(options: IterateOptions): Job {
+    return this.enqueue({
+      id: shortId(),
+      prompt: options.request,
+      status: 'queued',
+      createdAt: Date.now(),
+      kind: 'iterate',
+      options: { prompt: options.request },
+      iteration: options,
+      events: [],
+    });
   }
 
   private async execute(job: Job): Promise<void> {
@@ -131,10 +153,16 @@ export class JobQueue {
 
     try {
       const llm = new LLMClient(this.cfg, bus);
-      job.result = await buildApp(
-        { cfg: this.cfg, bus, llm },
-        { ...job.options, signal: controller.signal },
-      );
+      const deps = { cfg: this.cfg, bus, llm };
+
+      if (job.kind === 'iterate' && job.iteration) {
+        job.iterationResult = await iterateProject(deps, {
+          ...job.iteration,
+          signal: controller.signal,
+        });
+      } else {
+        job.result = await buildApp(deps, { ...job.options, signal: controller.signal });
+      }
       job.status = 'done';
     } catch (error) {
       const err = toError(error);
@@ -173,18 +201,20 @@ export class JobQueue {
   }
 
   summarize(job: Job): JobSummary {
+    const iteration = job.iterationResult;
     return {
       id: job.id,
       prompt: job.prompt,
       status: job.status,
+      kind: job.kind,
       createdAt: job.createdAt,
       startedAt: job.startedAt,
       finishedAt: job.finishedAt,
-      name: job.result?.spec.name,
-      projectDir: job.result?.projectDir,
-      repoUrl: job.result?.repo?.url,
-      files: job.result?.files.length ?? 0,
-      verified: job.result?.verification.ok,
+      name: job.result?.spec.name ?? (iteration ? iteration.summary.slice(0, 60) : undefined),
+      projectDir: job.result?.projectDir ?? iteration?.projectDir,
+      repoUrl: job.result?.repo?.url ?? iteration?.repo?.url,
+      files: job.result?.files.length ?? (iteration ? iteration.created.length + iteration.modified.length : 0),
+      verified: job.result?.verification.ok ?? iteration?.verification.ok,
       error: job.error,
     };
   }

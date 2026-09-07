@@ -81,6 +81,13 @@ export interface BuildResult {
     owner: string;
     name: string;
     branch: string;
+    /** Pull request ouverte si `pullRequest` etait demande. */
+    pullRequestUrl?: string;
+    /** Release publiee si `release` etait demande. */
+    releaseUrl?: string;
+    /** URL GitHub Pages si le site a ete active. */
+    pagesUrl?: string;
+    topics?: string[];
   };
 }
 
@@ -102,6 +109,16 @@ export interface BuildOptions {
   repoName?: string;
   repoPrivate?: boolean;
   repoOwner?: string;
+  /** Pousse sur cette branche plutot que sur la branche par defaut. */
+  branch?: string;
+  /** Ouvre une pull request depuis `branch` vers la branche par defaut. */
+  pullRequest?: boolean;
+  /** Publie une release avec ce tag (ex. "v0.1.0"). */
+  release?: string;
+  /** Sujets GitHub du depot. Par defaut, deduits de la pile et des fonctionnalites. */
+  topics?: string[];
+  /** Active GitHub Pages (projets statiques). */
+  pages?: boolean;
   /** Ajoute un workflow GitHub Actions au projet genere. */
   withCi?: boolean;
   /** Force un fournisseur de modeles. */

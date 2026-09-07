@@ -73,16 +73,29 @@ function envBool(name: string, fallback: boolean): boolean {
 }
 
 export const DEFAULT_PROVIDER_ORDER = [
+  // Local d'abord : si un modele tourne sur la machine, rien ne sort du reseau.
   'ollama',
   'lmstudio',
+  'vllm',
+  'llamacpp',
+  'custom',
+  // Puis les services, dans un ordre neutre.
   'openai',
   'anthropic',
   'google',
+  'azure',
   'mistral',
   'groq',
   'deepseek',
   'xai',
+  'cerebras',
+  'fireworks',
   'together',
+  'nebius',
+  'sambanova',
+  'cohere',
+  'huggingface',
+  'perplexity',
   'openrouter',
 ];
 

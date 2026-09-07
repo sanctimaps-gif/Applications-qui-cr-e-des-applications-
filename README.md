@@ -19,11 +19,13 @@ forge new "Un raccourcisseur d'URL avec statistiques, API REST et tests" --githu
 | | |
 |---|---|
 | **Aucune limite de création** | Aucun quota de projets, de fichiers, de tokens ni de boucles de correction. Toutes les limites valent `0` par défaut, ce qui signifie *illimité*. |
-| **Aucun fournisseur imposé** | OpenAI, Anthropic, Google, Mistral, Groq, DeepSeek, xAI, Together, OpenRouter — ou **100 % local** via Ollama / LM Studio. Bascule automatique si l'un tombe. |
+| **22 fournisseurs, aucun imposé** | 17 services — OpenAI, Anthropic, Google, Azure, Mistral, Groq, DeepSeek, xAI, Cerebras, Fireworks, Together, Nebius, SambaNova, Cohere, Hugging Face, Perplexity, OpenRouter — 4 moteurs **100 % locaux** (Ollama, LM Studio, vLLM, llama.cpp), et un connecteur universel pour tout service parlant `/chat/completions`. Bascule automatique si l'un tombe. |
+| **11 écosystèmes** | Node, Bun, Deno, Python, Go, Rust, Java/Kotlin, Ruby, PHP, .NET, sites statiques — commandes, `.gitignore` et CI adaptés à chacun. |
 | **Zéro dépendance d'exécution** | Le `package.json` n'a aucune dépendance runtime. Rien à auditer, rien qui casse, démarrage instantané. |
 | **Le code est réellement exécuté** | Forge lance `install`, `lint`, `build` et `test` dans le projet généré. Ce qui est livré a été vérifié, pas supposé. |
 | **Il se répare tout seul** | En cas d'échec, il lit la vraie sortie d'erreur, cible les fichiers fautifs, les régénère et relance — jusqu'à ce que ça passe. |
-| **Intégration GitHub native** | Création du dépôt, publication de l'arborescence complète en un commit via l'API Git Data, workflow CI inclus. |
+| **Il fait évoluer l'existant** | `forge iterate` modifie un projet déjà généré : plan de changement ciblé, édition, vérification, réparation, commit — et pull request si demandé. |
+| **Intégration GitHub complète** | Dépôt, push en un commit via l'API Git Data, branches, pull requests, releases, sujets, GitHub Pages, workflow CI. |
 
 ## Performance
 
@@ -106,14 +108,26 @@ forge new "Une API de gestion de tâches avec authentification par jeton et test
 # Pile imposée, dépôt GitHub public, workflow CI
 forge new "Un jeu de la vie avec rendu terminal" --stack "Rust" --github --public --ci
 
+# Site statique publié sur GitHub Pages avec une release
+forge new "Un portfolio statique" --github --public --pages --release v1.0.0
+
 # Modèle local, sans vérification, sortie machine
 forge new "Un convertisseur Markdown vers HTML" --provider ollama --no-verify --json
 
+# Faire évoluer un projet existant
+forge iterate ./mon-app "Ajoute une pagination et les tests correspondants"
+forge iterate ./mon-app "Passe la base en PostgreSQL" --github --branch feat/pg --pr
+
 # Publier après coup un projet déjà généré
 forge publish ./forge-projects/mon-app --repo mon-app
+
+# Inspecter la configuration
+forge doctor      # fournisseurs joignables, GitHub, limites
+forge providers   # modèles retenus par palier
+forge stacks      # écosystèmes reconnus et leurs commandes
 ```
 
-Options principales de `forge new` :
+Options principales de `forge new` et `forge iterate` :
 
 | Option | Effet |
 |---|---|
@@ -122,8 +136,11 @@ Options principales de `forge new` :
 | `--provider <nom>` | Force un fournisseur |
 | `--no-verify` | N'exécute pas `install` / `build` / `test` |
 | `--repair <n>` | Nombre de boucles de correction (`0` = illimité, défaut) |
-| `--github` `--repo` `--owner` `--public` `--ci` | Publication GitHub |
-| `--json` / `--quiet` | Sortie machine / journal minimal |
+| `--github` `--repo` `--owner` `--public` | Publication GitHub |
+| `--branch <nom>` `--pr` | Pousse sur une branche et ouvre une pull request |
+| `--release <tag>` `--topics <a,b>` `--pages` | Release, sujets, GitHub Pages |
+| `--ci` | Workflow GitHub Actions adapté à l'écosystème |
+| `--json` / `--quiet` | Sortie machine / journal allégé (le résumé final reste affiché) |
 
 ### Interface web
 
@@ -149,6 +166,7 @@ FORGE_AUTH_TOKEN=un-secret FORGE_HOST=0.0.0.0 forge serve
 | `GET /api/projects` | Historique des générations |
 | `GET /api/projects/:id` | État détaillé, spécification, vérification |
 | `GET /api/projects/:id/events` | Flux SSE en direct (rejoue l'historique) |
+| `POST /api/projects/:id/iterate` | Fait évoluer le projet (`{ "request": "..." }`), suivi en SSE |
 | `POST /api/projects/:id/publish` | Publie sur GitHub après coup |
 | `POST /api/projects/:id/cancel` | Annule une génération en cours |
 | `GET /api/health`, `GET /api/providers` | État du service |
@@ -156,7 +174,7 @@ FORGE_AUTH_TOKEN=un-secret FORGE_HOST=0.0.0.0 forge serve
 ### Bibliothèque
 
 ```ts
-import { createForge, buildApp } from 'forge-ai';
+import { createForge, buildApp, iterateProject } from 'forge-ai';
 
 const forge = createForge();
 forge.bus.onEvent((event) => console.log(event));
@@ -166,8 +184,17 @@ const result = await buildApp(forge, {
   github: true,
   withCi: true,
 });
-
 console.log(result.projectDir, result.repo?.url, result.verification.ok);
+
+// Puis le faire évoluer, avec une pull request à la clé
+const change = await iterateProject(forge, {
+  dir: result.projectDir,
+  request: 'Ajoute un export CSV et les tests correspondants',
+  github: true,
+  branch: 'feat/export-csv',
+  pullRequest: true,
+});
+console.log(change.summary, change.modified, change.repo?.pullRequestUrl);
 ```
 
 ---
@@ -198,14 +225,20 @@ console.log(result.projectDir, result.repo?.url, result.verification.ok);
     └─────────────────────────────┘
 ```
 
+`forge iterate` suit le même principe sur un projet existant, en deux temps pour
+garder le contexte petit : le modèle choisit d'abord les fichiers qu'il doit
+lire, puis planifie les changements sur cette seule base — un dépôt entier n'est
+jamais envoyé.
+
 Structure du code :
 
 ```
 src/
 ├── config.ts            configuration ; 0 = illimité partout
-├── providers/           OpenAI-compatible, Anthropic, Google, SSE
+├── recipes.ts           11 écosystèmes : commandes, .gitignore, CI
+├── providers/           OpenAI-compatible, Anthropic, Google, Azure, SSE
 ├── llm/                 client (retry, bascule, comptabilité) + cache
-├── pipeline/            plan · graphe · génération · vérification · réparation
+├── pipeline/            plan · graphe · génération · vérification · réparation · itération
 ├── fs/                  espace de travail confiné, exécution de commandes
 ├── git/                 client GitHub REST, git local
 ├── server/              file d'attente, API HTTP, interface web
@@ -254,14 +287,17 @@ export FORGE_OLLAMA_MODEL_BALANCED=qwen2.5-coder:32b
 ```bash
 npm run dev -- new "..."   # exécution directe en TypeScript
 npm run typecheck
-npm test                   # 31 tests, aucun appel réseau sortant
+npm test                   # 49 tests, aucun appel réseau sortant
 npm run build
 ```
 
 Les tests couvrent le tri topologique, l'extraction JSON tolérante, le confinement des chemins,
 le pool de concurrence, le transport HTTP des fournisseurs (JSON, SSE, 429, bascule), le pipeline
 complet avec un fournisseur simulé, la boucle de réparation (correction réussie et arrêt sur
-erreur bloquée), ainsi que l'API du serveur.
+erreur bloquée), les recettes d'écosystèmes, l'itération sur projet existant (création,
+modification, suppression, rejet des chemins hors projet), le client GitHub contre une API
+simulée (commit initial sans parent, mise à jour sur historique, reprise sur erreur serveur,
+branches, sujets, releases, pull requests), ainsi que l'API du serveur.
 
 ## Licence
 

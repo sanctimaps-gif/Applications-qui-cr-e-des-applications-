@@ -5,6 +5,7 @@ import { limit } from '../config.js';
 import { parseJsonOrThrow } from '../util/json.js';
 import { isRecord, slugify } from '../util/misc.js';
 import { normalizeRelPath } from '../fs/workspace.js';
+import { fillCommands, findRecipe } from '../recipes.js';
 import type { AppSpec, BuildOptions, FileSpec } from './types.js';
 
 const PLANNER_SYSTEM = `Tu es un architecte logiciel. A partir d'une demande, tu produis le plan complet d'une application reelle, immediatement executable.
@@ -83,18 +84,15 @@ function normalize(raw: unknown, options: BuildOptions, cfg: ForgeConfig): AppSp
   const pick = (key: string): string | undefined =>
     typeof commandsRaw[key] === 'string' && commandsRaw[key].trim() ? (commandsRaw[key] as string).trim() : undefined;
 
-  return {
-    name,
-    slug: slugify(typeof raw['slug'] === 'string' && raw['slug'] ? raw['slug'] : name),
-    summary: typeof raw['summary'] === 'string' ? raw['summary'] : options.prompt.slice(0, 300),
-    stack: options.stack ?? (typeof raw['stack'] === 'string' ? raw['stack'] : 'non precise'),
-    language: typeof raw['language'] === 'string' ? raw['language'] : 'TypeScript',
-    runtime: typeof raw['runtime'] === 'string' ? raw['runtime'] : 'node',
-    features: Array.isArray(raw['features'])
-      ? raw['features'].filter((f): f is string => typeof f === 'string')
-      : [],
-    files: kept,
-    commands: {
+  const runtime = typeof raw['runtime'] === 'string' ? raw['runtime'] : 'node';
+  const language = typeof raw['language'] === 'string' ? raw['language'] : 'TypeScript';
+  const recipe = findRecipe(runtime, language);
+  const plannedPaths = kept.map((file) => file.path);
+
+  // Le modele oublie regulierement une commande : la recette de l'ecosysteme
+  // comble les trous, mais seulement si le manifeste correspondant existe.
+  const commands = fillCommands(
+    {
       install: pick('install'),
       build: pick('build'),
       test: pick('test'),
@@ -102,6 +100,22 @@ function normalize(raw: unknown, options: BuildOptions, cfg: ForgeConfig): AppSp
       start: pick('start'),
       dev: pick('dev'),
     },
+    recipe,
+    plannedPaths,
+  );
+
+  return {
+    name,
+    slug: slugify(typeof raw['slug'] === 'string' && raw['slug'] ? raw['slug'] : name),
+    summary: typeof raw['summary'] === 'string' ? raw['summary'] : options.prompt.slice(0, 300),
+    stack: options.stack ?? (typeof raw['stack'] === 'string' ? raw['stack'] : 'non precise'),
+    language,
+    runtime,
+    features: Array.isArray(raw['features'])
+      ? raw['features'].filter((f): f is string => typeof f === 'string')
+      : [],
+    files: kept,
+    commands,
     env: Array.isArray(raw['env'])
       ? raw['env'].flatMap((e) =>
           isRecord(e) && typeof e['name'] === 'string'

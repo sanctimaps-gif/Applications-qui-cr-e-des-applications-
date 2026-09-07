@@ -27,6 +27,10 @@ export type { AskOptions, UsageStats } from './llm/client.js';
 export { ResponseCache } from './llm/cache.js';
 
 export { ModelRouter, buildProviders } from './providers/registry.js';
+export { OpenAICompatibleProvider } from './providers/openai-compatible.js';
+export { AnthropicProvider } from './providers/anthropic.js';
+export { GoogleProvider } from './providers/google.js';
+export { AzureOpenAIProvider } from './providers/azure.js';
 export type { Provider, ModelSpec, Message, CompletionResult } from './providers/types.js';
 export { ProviderError } from './providers/types.js';
 
@@ -39,7 +43,19 @@ export { topologicalWaves } from './pipeline/graph.js';
 export { verifyProject, isCommandAllowed } from './pipeline/verify.js';
 export { repairLoop } from './pipeline/repair.js';
 export { buildApp, publishProject, createForge } from './pipeline/orchestrator.js';
-export type { ForgeDeps } from './pipeline/orchestrator.js';
+export type { ForgeDeps, PublishOptions } from './pipeline/orchestrator.js';
+export { iterateProject } from './pipeline/iterate.js';
+export type { IterateOptions, IterateResult } from './pipeline/iterate.js';
+
+export {
+  RECIPES,
+  findRecipe,
+  detectRecipe,
+  fillCommands,
+  gitignoreFor,
+  workflowFor,
+} from './recipes.js';
+export type { Recipe } from './recipes.js';
 export type {
   AppSpec,
   FileSpec,

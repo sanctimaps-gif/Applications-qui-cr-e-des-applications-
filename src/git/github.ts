@@ -226,6 +226,112 @@ export class GitHubClient {
     return { commitSha: commit.sha, branch };
   }
 
+  /** Cree une branche a partir de la tete d'une autre. */
+  async createBranch(options: {
+    owner: string;
+    repo: string;
+    branch: string;
+    from: string;
+  }): Promise<{ branch: string; sha: string }> {
+    const base = `/repos/${options.owner}/${options.repo}/git`;
+    const source = await this.request<{ object: { sha: string } }>(
+      'GET',
+      `${base}/ref/heads/${encodeURIComponent(options.from)}`,
+    );
+
+    try {
+      await this.request('POST', `${base}/refs`, {
+        ref: `refs/heads/${options.branch}`,
+        sha: source.object.sha,
+      });
+    } catch (error) {
+      // 422 = la branche existe deja : on la reutilise plutot que d'echouer.
+      if (!(error instanceof GitHubError) || error.status !== 422) throw error;
+    }
+    return { branch: options.branch, sha: source.object.sha };
+  }
+
+  /** Publie une release, avec creation implicite du tag sur la branche. */
+  async createRelease(options: {
+    owner: string;
+    repo: string;
+    tag: string;
+    name?: string;
+    body?: string;
+    target?: string;
+    draft?: boolean;
+    prerelease?: boolean;
+  }): Promise<{ url: string; tag: string }> {
+    const release = await this.request<any>('POST', `/repos/${options.owner}/${options.repo}/releases`, {
+      tag_name: options.tag,
+      name: options.name ?? options.tag,
+      body: options.body ?? '',
+      ...(options.target ? { target_commitish: options.target } : {}),
+      draft: options.draft ?? false,
+      prerelease: options.prerelease ?? false,
+    });
+    return { url: release.html_url, tag: release.tag_name };
+  }
+
+  /** Renseigne les sujets du depot (utile pour la decouverte). */
+  async setTopics(owner: string, repo: string, topics: string[]): Promise<string[]> {
+    const cleaned = topics
+      .map((topic) => topic.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '').slice(0, 35))
+      .filter(Boolean)
+      .slice(0, 20);
+    const result = await this.request<{ names: string[] }>('PUT', `/repos/${owner}/${repo}/topics`, {
+      names: cleaned,
+    });
+    return result.names;
+  }
+
+  /** Met a jour description, page d'accueil ou branche par defaut. */
+  async updateRepo(
+    owner: string,
+    repo: string,
+    changes: { description?: string; homepage?: string; defaultBranch?: string },
+  ): Promise<void> {
+    await this.request('PATCH', `/repos/${owner}/${repo}`, {
+      ...(changes.description !== undefined ? { description: changes.description.slice(0, 350) } : {}),
+      ...(changes.homepage !== undefined ? { homepage: changes.homepage } : {}),
+      ...(changes.defaultBranch !== undefined ? { default_branch: changes.defaultBranch } : {}),
+    });
+  }
+
+  /** Active GitHub Pages sur une branche (sites statiques generes). */
+  async enablePages(owner: string, repo: string, branch = 'main', path: '/' | '/docs' = '/'): Promise<string | undefined> {
+    try {
+      const pages = await this.request<{ html_url: string }>('POST', `/repos/${owner}/${repo}/pages`, {
+        source: { branch, path },
+      });
+      return pages.html_url;
+    } catch (error) {
+      // 409 = Pages deja actif ; 403 = plan insuffisant pour un depot prive.
+      if (error instanceof GitHubError && (error.status === 409 || error.status === 403)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  /** Etat des workflows GitHub Actions du dernier commit. */
+  async latestRuns(
+    owner: string,
+    repo: string,
+    limit = 5,
+  ): Promise<Array<{ name: string; status: string; conclusion: string | null; url: string }>> {
+    const result = await this.request<{ workflow_runs?: any[] }>(
+      'GET',
+      `/repos/${owner}/${repo}/actions/runs?per_page=${limit}`,
+    );
+    return (result.workflow_runs ?? []).map((run) => ({
+      name: run.name ?? 'workflow',
+      status: run.status ?? 'unknown',
+      conclusion: run.conclusion ?? null,
+      url: run.html_url ?? '',
+    }));
+  }
+
   async createPullRequest(options: {
     owner: string;
     repo: string;

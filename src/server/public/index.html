@@ -124,7 +124,28 @@
           <label><input type="checkbox" id="private" checked /> depot prive</label>
         </div>
 
+        <details>
+          <summary>Options GitHub</summary>
+          <label for="branch">Branche (vide = branche par defaut)</label>
+          <input id="branch" type="text" placeholder="feat/version-initiale" />
+          <label for="release">Release (vide = aucune)</label>
+          <input id="release" type="text" placeholder="v0.1.0" />
+          <label for="topics">Sujets (vide = deduits du projet)</label>
+          <input id="topics" type="text" placeholder="api, typescript, sqlite" />
+          <div class="row">
+            <label><input type="checkbox" id="pr" /> ouvrir une pull request</label>
+            <label><input type="checkbox" id="pages" /> activer GitHub Pages</label>
+          </div>
+        </details>
+
         <button id="go">Generer</button>
+
+        <h2 style="margin-top: 22px">Modifier un projet existant</h2>
+        <label for="target">Projet</label>
+        <select id="target"><option value="">— choisir —</option></select>
+        <label for="change">Modification demandee</label>
+        <textarea id="change" style="min-height: 70px" placeholder="Ajoute une pagination et les tests correspondants."></textarea>
+        <button id="iterate">Appliquer la modification</button>
 
         <h2 style="margin-top: 22px">Historique</h2>
         <ul id="jobs"></ul>
@@ -206,6 +227,19 @@
             `fournisseurs: ${health.providers.join(', ') || 'aucun'} · github: ${health.github ? 'ok' : 'non configure'} · en cours: ${health.jobs.running} · file: ${health.jobs.queued} · limite: ${health.limits.maxProjects}`;
         }
 
+        // Seuls les projets termines peuvent etre modifies.
+        const target = $('target');
+        const previous = target.value;
+        target.innerHTML = '<option value="">— choisir —</option>';
+        for (const job of jobs.jobs || []) {
+          if (job.status !== 'done' || !job.projectDir) continue;
+          const option = document.createElement('option');
+          option.value = job.id;
+          option.textContent = job.name || job.prompt.slice(0, 46);
+          target.append(option);
+        }
+        target.value = previous;
+
         const list = $('jobs');
         list.innerHTML = '';
         for (const job of jobs.jobs || []) {
@@ -261,6 +295,13 @@
               verify: $('verify').checked,
               github: $('github').checked,
               repoPrivate: $('private').checked,
+              branch: $('branch').value.trim() || undefined,
+              release: $('release').value.trim() || undefined,
+              topics: $('topics').value.trim()
+                ? $('topics').value.split(',').map((t) => t.trim()).filter(Boolean)
+                : undefined,
+              pullRequest: $('pr').checked,
+              pages: $('pages').checked,
               withCi: true,
             }),
           });
@@ -271,6 +312,40 @@
         } catch (error) {
           line('✖ ' + error.message, 'l-err');
           $('go').disabled = false;
+        }
+      };
+
+      $('iterate').onclick = async () => {
+        const id = $('target').value;
+        const request = $('change').value.trim();
+        if (!id || request.length < 3) {
+          line('Choisissez un projet et decrivez la modification.', 'l-err');
+          return;
+        }
+        $('iterate').disabled = true;
+
+        try {
+          const response = await fetch(withToken(`/api/projects/${id}/iterate`), {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              request,
+              verify: $('verify').checked,
+              github: $('github').checked,
+              branch: $('branch').value.trim() || undefined,
+              pullRequest: $('pr').checked,
+              provider: $('provider').value || undefined,
+            }),
+          });
+          const job = await response.json();
+          if (!response.ok) throw new Error(job.error || 'erreur serveur');
+          $('change').value = '';
+          follow(job.id);
+          refresh();
+        } catch (error) {
+          line('✖ ' + error.message, 'l-err');
+        } finally {
+          $('iterate').disabled = false;
         }
       };
 

@@ -130,6 +130,11 @@ export function createServer(cfg: ForgeConfig = loadConfig()): {
         repoName: body.repoName,
         repoPrivate: body.repoPrivate,
         repoOwner: body.repoOwner,
+        branch: body.branch,
+        pullRequest: body.pullRequest,
+        release: body.release,
+        topics: body.topics,
+        pages: body.pages,
         withCi: body.withCi ?? true,
         provider: body.provider,
         maxRepairAttempts: body.maxRepairAttempts,
@@ -201,7 +206,16 @@ export function createServer(cfg: ForgeConfig = loadConfig()): {
           json(res, 409, { error: 'projet non termine' });
           return;
         }
-        const body = (await readBody(req)) as { repoName?: string; private?: boolean; owner?: string };
+        const body = (await readBody(req)) as {
+          repoName?: string;
+          private?: boolean;
+          owner?: string;
+          branch?: string;
+          pullRequest?: boolean;
+          release?: string;
+          topics?: string[];
+          pages?: boolean;
+        };
         const bus = new EventBus();
         const deps = { cfg, bus, llm: new LLMClient(cfg, bus) };
         const workspace = new Workspace(job.result.projectDir);
@@ -210,9 +224,39 @@ export function createServer(cfg: ForgeConfig = loadConfig()): {
           repoName: body.repoName,
           repoPrivate: body.private ?? true,
           repoOwner: body.owner,
+          branch: body.branch,
+          pullRequest: body.pullRequest,
+          release: body.release,
+          topics: body.topics,
+          pages: body.pages,
         });
         job.result.repo = repo;
         json(res, 200, repo);
+        return;
+      }
+
+      if (action === '/iterate' && req.method === 'POST') {
+        if (!job.result) {
+          json(res, 409, { error: 'projet non termine' });
+          return;
+        }
+        const body = (await readBody(req)) as { request?: string } & Record<string, unknown>;
+        if (!body.request || typeof body.request !== 'string' || body.request.trim().length < 3) {
+          json(res, 400, { error: 'champ "request" requis' });
+          return;
+        }
+        // L'iteration devient un nouveau job : le suivi SSE reste identique.
+        const next = queue.submitIteration({
+          dir: job.result.projectDir,
+          request: body.request.trim(),
+          verify: body['verify'] as boolean | undefined,
+          github: body['github'] as boolean | undefined,
+          repoName: body['repoName'] as string | undefined,
+          branch: body['branch'] as string | undefined,
+          pullRequest: body['pullRequest'] as boolean | undefined,
+          provider: body['provider'] as string | undefined,
+        });
+        json(res, 202, queue.summarize(next));
         return;
       }
     }

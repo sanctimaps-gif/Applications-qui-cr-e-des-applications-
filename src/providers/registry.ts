@@ -3,6 +3,7 @@ import type { ModelSpec, Provider } from './types.js';
 import { OpenAICompatibleProvider } from './openai-compatible.js';
 import { AnthropicProvider } from './anthropic.js';
 import { GoogleProvider } from './google.js';
+import { AzureOpenAIProvider } from './azure.js';
 
 function models(deep: string, balanced: string, fast: string, ctx: number, out: number): Record<Tier, ModelSpec> {
   return {
@@ -122,6 +123,123 @@ export function buildProviders(cfg: ForgeConfig): Provider[] {
       ),
       extraHeaders: { 'x-title': 'Forge' },
       concurrency: 16,
+      timeoutMs: t,
+    }),
+    new AzureOpenAIProvider(t),
+    new OpenAICompatibleProvider({
+      name: 'cohere',
+      baseUrl: 'https://api.cohere.ai/compatibility/v1',
+      apiKeyEnv: ['COHERE_API_KEY'],
+      models: models('command-a-03-2025', 'command-r-plus', 'command-r', 256_000, 8_192),
+      concurrency: 12,
+      timeoutMs: t,
+    }),
+    new OpenAICompatibleProvider({
+      name: 'perplexity',
+      baseUrl: 'https://api.perplexity.ai',
+      apiKeyEnv: ['PERPLEXITY_API_KEY'],
+      models: models('sonar-pro', 'sonar-pro', 'sonar', 128_000, 8_192),
+      concurrency: 8,
+      timeoutMs: t,
+    }),
+    new OpenAICompatibleProvider({
+      name: 'fireworks',
+      baseUrl: 'https://api.fireworks.ai/inference/v1',
+      apiKeyEnv: ['FIREWORKS_API_KEY'],
+      models: models(
+        'accounts/fireworks/models/qwen2p5-coder-32b-instruct',
+        'accounts/fireworks/models/qwen2p5-coder-32b-instruct',
+        'accounts/fireworks/models/llama-v3p1-8b-instruct',
+        128_000,
+        8_192,
+      ),
+      concurrency: 16,
+      timeoutMs: t,
+    }),
+    new OpenAICompatibleProvider({
+      name: 'cerebras',
+      baseUrl: 'https://api.cerebras.ai/v1',
+      apiKeyEnv: ['CEREBRAS_API_KEY'],
+      models: models('qwen-3-coder-480b', 'llama-3.3-70b', 'llama3.1-8b', 128_000, 8_192),
+      concurrency: 12,
+      timeoutMs: t,
+    }),
+    new OpenAICompatibleProvider({
+      name: 'nebius',
+      baseUrl: 'https://api.studio.nebius.ai/v1',
+      apiKeyEnv: ['NEBIUS_API_KEY'],
+      models: models(
+        'Qwen/Qwen2.5-Coder-32B-Instruct',
+        'Qwen/Qwen2.5-Coder-32B-Instruct',
+        'meta-llama/Meta-Llama-3.1-8B-Instruct',
+        128_000,
+        8_192,
+      ),
+      concurrency: 12,
+      timeoutMs: t,
+    }),
+    new OpenAICompatibleProvider({
+      name: 'sambanova',
+      baseUrl: 'https://api.sambanova.ai/v1',
+      apiKeyEnv: ['SAMBANOVA_API_KEY'],
+      models: models('Llama-3.3-70B-Instruct', 'Llama-3.3-70B-Instruct', 'Meta-Llama-3.1-8B-Instruct', 128_000, 8_192),
+      concurrency: 12,
+      timeoutMs: t,
+    }),
+    new OpenAICompatibleProvider({
+      name: 'huggingface',
+      baseUrl: 'https://router.huggingface.co/v1',
+      apiKeyEnv: ['HF_TOKEN', 'HUGGINGFACE_API_KEY'],
+      models: models(
+        'Qwen/Qwen2.5-Coder-32B-Instruct',
+        'Qwen/Qwen2.5-Coder-32B-Instruct',
+        'meta-llama/Llama-3.1-8B-Instruct',
+        128_000,
+        8_192,
+      ),
+      concurrency: 8,
+      timeoutMs: t,
+    }),
+
+    // --- Serveurs auto-heberges (vLLM, llama.cpp, TGI, LiteLLM...) ---------
+    new OpenAICompatibleProvider({
+      name: 'vllm',
+      baseUrl: 'http://127.0.0.1:8000/v1',
+      hostEnv: ['FORGE_VLLM_BASE_URL', 'VLLM_BASE_URL'],
+      ensurePathSuffix: '/v1',
+      apiKeyEnv: ['VLLM_API_KEY'],
+      requiresKey: false,
+      models: models('local-model', 'local-model', 'local-model', 128_000, 8_192),
+      concurrency: 8,
+      timeoutMs: t,
+    }),
+    new OpenAICompatibleProvider({
+      name: 'llamacpp',
+      baseUrl: 'http://127.0.0.1:8080/v1',
+      hostEnv: ['FORGE_LLAMACPP_BASE_URL', 'LLAMACPP_BASE_URL'],
+      ensurePathSuffix: '/v1',
+      apiKeyEnv: [],
+      requiresKey: false,
+      models: models('local-model', 'local-model', 'local-model', 128_000, 8_192),
+      concurrency: 2,
+      timeoutMs: t,
+    }),
+
+    /**
+     * Connecteur universel : n'importe quel service parlant l'API
+     * `/chat/completions` peut etre branche sans toucher au code.
+     *   FORGE_CUSTOM_BASE_URL=https://mon-service/v1
+     *   FORGE_CUSTOM_API_KEY=...            (facultatif)
+     *   FORGE_CUSTOM_MODEL_BALANCED=mon-modele
+     */
+    new OpenAICompatibleProvider({
+      name: 'custom',
+      baseUrl: 'http://127.0.0.1:8081/v1',
+      hostEnv: ['FORGE_CUSTOM_BASE_URL'],
+      apiKeyEnv: ['FORGE_CUSTOM_API_KEY'],
+      requiresKey: false,
+      models: models('custom-model', 'custom-model', 'custom-model', 128_000, 8_192),
+      concurrency: 8,
       timeoutMs: t,
     }),
   ];
