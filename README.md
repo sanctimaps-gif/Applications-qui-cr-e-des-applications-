@@ -1,5 +1,17 @@
 # Forge
 
+### ▶ [Ouvrir l'application](https://sanctimaps-gif.github.io/Applications-qui-cr-e-des-applications-/)
+
+Rien à installer : la page s'ouvre dans votre navigateur, vous décrivez une application, elle est
+écrite sous vos yeux et se met à tourner. Il vous faut seulement une clé d'API (OpenAI, Anthropic,
+Google, Groq, Mistral, DeepSeek, OpenRouter) — ou rien du tout avec Ollama en local. La clé reste
+dans votre navigateur.
+
+Cette page est l'**édition navigateur**. L'édition complète, décrite ci-dessous, s'installe sur
+votre machine et va beaucoup plus loin.
+
+---
+
 **Une application qui crée des applications.** Vous décrivez ce que vous voulez ; Forge conçoit
 l'architecture, écrit tous les fichiers, exécute réellement l'installation, le build et les tests,
 corrige ses propres erreurs, puis publie le résultat sur GitHub.
@@ -48,6 +60,20 @@ La vitesse vient de l'architecture, pas d'un réglage :
   le temps du plus lent, pas la somme des soixante.
 
 ---
+
+## Les deux éditions
+
+| | Édition navigateur | Édition complète |
+|---|---|---|
+| Accès | [un lien](https://sanctimaps-gif.github.io/Applications-qui-cr-e-des-applications-/), rien à installer | `npm install` puis `forge serve` |
+| Ce qu'elle construit | applications web autonomes (HTML/CSS/JS) | n'importe quelle pile : Node, Python, Go, Rust, .NET… |
+| Exécute et teste le code | non | oui, et corrige ses propres erreurs |
+| Publie sur GitHub | non | dépôt, branche, pull request, release, Pages |
+| Fournisseurs | 8, votre clé dans le navigateur | 22, dont 4 entièrement locaux |
+| Limite de création | celle de votre fournisseur | **aucune** |
+
+Le fichier de l'édition navigateur est [`index.html`](index.html) : un seul fichier, sans
+dépendance, qui fonctionne aussi hors ligne si vous le téléchargez et l'ouvrez directement.
 
 ## Installation
 
