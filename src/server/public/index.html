@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Forge — generateur d'applications</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0d10;
+        --panel: #14181d;
+        --line: #232a32;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --accent: #ff7a18;
+        --ok: #3fb950;
+        --err: #f85149;
+        --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.55 var(--font);
+      }
+      header {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--line);
+      }
+      header h1 { margin: 0; font-size: 19px; letter-spacing: -0.01em; }
+      header h1 span { color: var(--accent); }
+      header .sub { color: var(--muted); font-size: 13px; }
+      #health { margin-left: auto; color: var(--muted); font-size: 12px; font-family: var(--mono); }
+      main {
+        display: grid;
+        grid-template-columns: minmax(320px, 420px) 1fr;
+        gap: 20px;
+        padding: 20px 24px;
+        align-items: start;
+      }
+      @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+      textarea, input[type="text"], select {
+        width: 100%;
+        background: #0e1116;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--text);
+        padding: 10px 12px;
+        font: 14px/1.5 var(--font);
+      }
+      textarea { min-height: 132px; resize: vertical; }
+      textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+      .row { display: flex; gap: 16px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+      .row label { margin: 0; text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--text); display: flex; gap: 7px; align-items: center; }
+      button {
+        margin-top: 16px;
+        width: 100%;
+        background: var(--accent);
+        color: #10130f;
+        border: 0;
+        border-radius: 8px;
+        padding: 11px 16px;
+        font: 600 15px var(--font);
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      #log {
+        font: 12.5px/1.6 var(--mono);
+        background: #0e1116;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        height: 60vh;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .l-phase { color: var(--accent); font-weight: 600; }
+      .l-ok { color: var(--ok); }
+      .l-err { color: var(--err); }
+      .l-dim { color: var(--muted); }
+      #jobs { list-style: none; margin: 12px 0 0; padding: 0; font-size: 13px; }
+      #jobs li { display: flex; gap: 8px; padding: 7px 0; border-top: 1px solid var(--line); }
+      #jobs a { color: var(--text); text-decoration: none; }
+      #jobs a:hover { color: var(--accent); }
+      .badge { font: 11px var(--mono); padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+      h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0 0 4px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>For<span>ge</span></h1>
+      <div class="sub">Decrivez une application. Elle est concue, ecrite, testee, reparee et publiee sur GitHub.</div>
+      <div id="health">…</div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <h2>Nouvelle application</h2>
+        <label for="prompt">Que voulez-vous construire ?</label>
+        <textarea id="prompt" placeholder="Une API REST de gestion de taches avec authentification par jeton, stockage SQLite, tests automatises et documentation OpenAPI."></textarea>
+
+        <label for="stack">Pile technique (optionnel)</label>
+        <input id="stack" type="text" placeholder="laisser vide = choix automatique" />
+
+        <label for="provider">Fournisseur de modeles</label>
+        <select id="provider"><option value="">automatique</option></select>
+
+        <div class="row">
+          <label><input type="checkbox" id="verify" checked /> verifier (install/build/test)</label>
+          <label><input type="checkbox" id="github" /> publier sur GitHub</label>
+          <label><input type="checkbox" id="private" checked /> depot prive</label>
+        </div>
+
+        <button id="go">Generer</button>
+
+        <h2 style="margin-top: 22px">Historique</h2>
+        <ul id="jobs"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>Journal en direct</h2>
+        <div id="log" class="l-dim">En attente d'une demande…</div>
+      </section>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const logEl = $('log');
+      let source = null;
+
+      const token = new URLSearchParams(location.search).get('token');
+      const withToken = (url) => (token ? url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token) : url);
+      const headers = { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}) };
+
+      function line(text, cls) {
+        const div = document.createElement('div');
+        if (cls) div.className = cls;
+        div.textContent = text;
+        logEl.appendChild(div);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function clock(at) {
+        return new Date(at).toLocaleTimeString('fr-FR');
+      }
+
+      function render(event) {
+        const t = clock(event.at || Date.now());
+        switch (event.type) {
+          case 'phase': return line(`▸ ${event.message}`, 'l-phase');
+          case 'plan': return line(`plan : ${event.name} — ${event.files} fichiers — ${event.stack}`);
+          case 'file:start': return line(`  … ${event.path} (${event.index}/${event.total})`, 'l-dim');
+          case 'file:done': return line(`  ✔ ${event.path} — ${event.bytes} o en ${Math.round(event.ms)} ms`, 'l-ok');
+          case 'file:error': return line(`  ✖ ${event.path} — ${event.error}`, 'l-err');
+          case 'llm': return line(`  ${t} ${event.provider}/${event.model} ${event.cached ? '(cache)' : Math.round(event.ms) + ' ms'} · ${event.inputTokens}→${event.outputTokens} tok`, 'l-dim');
+          case 'command': return line(`$ ${event.command} → code ${event.code} (${Math.round(event.ms)} ms)\n${event.output}`, event.code === 0 ? 'l-ok' : 'l-err');
+          case 'repair': return line(`⟳ reparation ${event.attempt} : ${event.reason}`, 'l-phase');
+          case 'github': return line(`GitHub : ${event.action}${event.url ? ' → ' + event.url : ''}`, 'l-ok');
+          case 'log': return line(`  ${event.message}`, event.level === 'error' ? 'l-err' : 'l-dim');
+          case 'done': return line(`\n✔ Termine — ${event.files} fichiers en ${(event.ms / 1000).toFixed(1)} s\n${event.projectDir}${event.repoUrl ? '\n' + event.repoUrl : ''}`, 'l-ok');
+          case 'error': return line(`✖ ${event.message}`, 'l-err');
+          case 'end': return line(`— flux ferme (${event.status}) —`, 'l-dim');
+          default: return undefined;
+        }
+      }
+
+      function follow(id) {
+        if (source) source.close();
+        logEl.textContent = '';
+        logEl.className = '';
+        source = new EventSource(withToken(`/api/projects/${id}/events`));
+        source.onmessage = (message) => {
+          const event = JSON.parse(message.data);
+          render(event);
+          if (event.type === 'end') {
+            source.close();
+            source = null;
+            $('go').disabled = false;
+            refresh();
+          }
+        };
+        source.onerror = () => { $('go').disabled = false; };
+      }
+
+      async function refresh() {
+        const [health, jobs] = await Promise.all([
+          fetch(withToken('/api/health'), { headers }).then((r) => r.json()).catch(() => null),
+          fetch(withToken('/api/projects'), { headers }).then((r) => r.json()).catch(() => ({ jobs: [] })),
+        ]);
+
+        if (health) {
+          $('health').textContent =
+            `fournisseurs: ${health.providers.join(', ') || 'aucun'} · github: ${health.github ? 'ok' : 'non configure'} · en cours: ${health.jobs.running} · file: ${health.jobs.queued} · limite: ${health.limits.maxProjects}`;
+        }
+
+        const list = $('jobs');
+        list.innerHTML = '';
+        for (const job of jobs.jobs || []) {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = '#';
+          a.textContent = job.name || job.prompt.slice(0, 46);
+          a.onclick = (e) => { e.preventDefault(); follow(job.id); };
+          const badge = document.createElement('span');
+          badge.className = 'badge';
+          badge.textContent = job.status;
+          li.append(badge, a);
+          if (job.repoUrl) {
+            const repo = document.createElement('a');
+            repo.href = job.repoUrl;
+            repo.target = '_blank';
+            repo.rel = 'noopener';
+            repo.textContent = '↗';
+            repo.style.marginLeft = 'auto';
+            li.append(repo);
+          }
+          list.append(li);
+        }
+      }
+
+      async function loadProviders() {
+        try {
+          const data = await fetch(withToken('/api/providers'), { headers }).then((r) => r.json());
+          for (const provider of data.configured || []) {
+            const option = document.createElement('option');
+            option.value = provider.name;
+            option.textContent = `${provider.name} (${provider.models.balanced})`;
+            $('provider').append(option);
+          }
+        } catch { /* le serveur repondra a la soumission */ }
+      }
+
+      $('go').onclick = async () => {
+        const prompt = $('prompt').value.trim();
+        if (prompt.length < 3) return;
+        $('go').disabled = true;
+        logEl.textContent = '';
+        line('Envoi de la demande…', 'l-dim');
+
+        try {
+          const response = await fetch(withToken('/api/projects'), {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              prompt,
+              stack: $('stack').value.trim() || undefined,
+              provider: $('provider').value || undefined,
+              verify: $('verify').checked,
+              github: $('github').checked,
+              repoPrivate: $('private').checked,
+              withCi: true,
+            }),
+          });
+          const job = await response.json();
+          if (!response.ok) throw new Error(job.error || 'erreur serveur');
+          follow(job.id);
+          refresh();
+        } catch (error) {
+          line('✖ ' + error.message, 'l-err');
+          $('go').disabled = false;
+        }
+      };
+
+      loadProviders();
+      refresh();
+      setInterval(refresh, 10_000);
+    </script>
+  </body>
+</html>

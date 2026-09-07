@@ -1,0 +1,50 @@
+{
+  "name": "forge-ai",
+  "version": "0.1.0",
+  "description": "Forge — generateur autonome d'applications par IA. Multi-fournisseurs, integre a GitHub, sans limite de creation.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "bin": {
+    "forge": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src/server/public",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "node --import tsx src/cli.ts",
+    "serve": "node --import tsx src/cli.ts serve",
+    "test": "node --import tsx --test test/*.test.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ai",
+    "codegen",
+    "agent",
+    "app-generator",
+    "github",
+    "llm",
+    "autonomous"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
