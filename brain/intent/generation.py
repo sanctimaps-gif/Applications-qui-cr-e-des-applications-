@@ -33,10 +33,17 @@ def _echappe_html(texte: str) -> str:
     )
 
 
+#: Types traites comme des nombres : validation, tri et somme.
+NUMERIQUES = ("nombre", "pourcentage", "etoiles")
+
+#: Types cherches par la barre de recherche.
+TEXTUELS = ("texte", "texte_long", "email", "url", "telephone", "couleur_hex")
+
+
 def _valeur_vide(champ: Champ) -> str:
     if champ.type == "booleen":
         return "false"
-    if champ.type == "nombre":
+    if champ.type in NUMERIQUES:
         return "0"
     if champ.type == "choix":
         return f"'{_echappe_js(champ.options[0])}'" if champ.options else "''"
@@ -49,6 +56,16 @@ def _exemple(champ: Champ, indice: int) -> str:
         return "true" if indice == 1 else "false"
     if champ.type == "nombre":
         return str([3, 12, 7][indice % 3])
+    if champ.type == "pourcentage":
+        return str([25, 60, 90][indice % 3])
+    if champ.type == "etoiles":
+        return str([3, 5, 4][indice % 3])
+    if champ.type == "heure":
+        return f"'0{indice + 8}:30'"
+    if champ.type == "telephone":
+        return f"'06 12 34 56 7{indice}'"
+    if champ.type == "couleur_hex":
+        return f"'{[chr(35) + v for v in ('c9613f', '3d6ea5', '4b7b5a')][indice % 3]}'"
     if champ.type == "date":
         return f"'2026-0{indice + 1}-1{indice}'"
     if champ.type == "choix" and champ.options:
@@ -65,7 +82,8 @@ def _exemple(champ: Champ, indice: int) -> str:
 # --------------------------------------------------------------------------- #
 # store.js — la logique metier, pure et testable
 # --------------------------------------------------------------------------- #
-def _store(intention: Intention) -> str:
+def _store(intention: Intention, backend: str = "navigateur") -> str:
+    """Logique metier. `backend` decide seulement de la persistance."""
     champs = intention.champs
     principal = intention.champ_principal
 
@@ -81,7 +99,7 @@ def _store(intention: Intention) -> str:
     }}"""
     ]
     for c in champs:
-        if c.type == "nombre":
+        if c.type in NUMERIQUES:
             validations.append(
                 f"""    if (brouillon.{c.cle} !== undefined && Number.isNaN(Number(brouillon.{c.cle}))) {{
       throw new Error('Le champ « {_echappe_js(c.libelle)} » doit être un nombre.');
@@ -94,14 +112,14 @@ def _store(intention: Intention) -> str:
     }}"""
             )
 
-    champs_recherche = [c.cle for c in champs if c.type in ("texte", "texte_long", "email", "url")]
+    champs_recherche = [c.cle for c in champs if c.type in TEXTUELS]
     recherche = " || ".join(
         f"String(fiche.{cle} ?? '').toLowerCase().includes(terme)" for cle in champs_recherche
     ) or "true"
 
     champ_filtre = next((c for c in champs if c.type == "choix"), None)
     champ_coche = next((c for c in champs if c.type == "booleen"), None)
-    champ_tri = next((c for c in champs if c.type in ("date", "nombre")), None)
+    champ_tri = next((c for c in champs if c.type in ("date", "heure", *NUMERIQUES)), None)
 
     bloc_filtre = ""
     if champ_filtre:
@@ -139,13 +157,84 @@ def _store(intention: Intention) -> str:
       restants: this.#fiches.filter((f) => !f.{champ_coche.cle}).length,"""
 
     stats_nombre = ""
-    champ_nombre = next((c for c in champs if c.type == "nombre"), None)
+    champ_nombre = next((c for c in champs if c.type in NUMERIQUES), None)
     if champ_nombre:
         stats_nombre = f"""
       total{champ_nombre.cle.capitalize()}: this.#fiches.reduce((somme, f) => somme + Number(f.{champ_nombre.cle} ?? 0), 0),"""
 
     colonnes_csv = ", ".join(f"'{_echappe_js(c.libelle)}'" for c in champs)
     valeurs_csv = ", ".join(f"fiche.{c.cle}" for c in champs)
+
+    cle_stockage = _echappe_js(intention.pluriel.lower().replace(" ", "-"))
+
+    if backend == "fichier":
+        entete = f"""const fs = require('node:fs');
+const path = require('node:path');
+
+/** Fichier de donnees ; surchargeable par la variable DONNEES. */
+const FICHIER = process.env.DONNEES || path.join(__dirname, '{cle_stockage}.json');"""
+        constructeur = """  #fiches = [];
+  #fichier;
+
+  /**
+   * @param {string|null} fichier - chemin du fichier de donnees, ou null pour
+   *   rester en memoire (c'est ce que font les tests).
+   */
+  constructor(fichier = FICHIER) {
+    this.#fichier = fichier;
+    this.#fiches = this.#charger();
+  }
+
+  #charger() {
+    if (this.#fichier) {
+      try {
+        return JSON.parse(fs.readFileSync(this.#fichier, 'utf8'));
+      } catch {
+        // Premier lancement, ou fichier illisible : on repart des exemples.
+      }
+    }
+    return this.#exemples();
+  }"""
+        enregistrement = """  #enregistrer() {
+    if (!this.#fichier) return;
+    try {
+      fs.writeFileSync(this.#fichier, JSON.stringify(this.#fiches, null, 2), 'utf8');
+    } catch {
+      // Disque plein ou lecture seule : l'application reste utilisable.
+    }
+  }"""
+    else:
+        entete = f"const CLEF = '{cle_stockage}';"
+        constructeur = """  #fiches = [];
+  #stockage;
+
+  /**
+   * @param {Storage|null} stockage - localStorage, ou null pour rester en memoire.
+   */
+  constructor(stockage = null) {
+    this.#stockage = stockage;
+    this.#fiches = this.#charger();
+  }
+
+  #charger() {
+    if (this.#stockage) {
+      try {
+        const brut = this.#stockage.getItem(CLEF);
+        if (brut) return JSON.parse(brut);
+      } catch {
+        // Donnees illisibles : on repart des exemples plutot que de planter.
+      }
+    }
+    return this.#exemples();
+  }"""
+        enregistrement = """  #enregistrer() {
+    if (!this.#stockage) return;
+    try {
+      this.#stockage.setItem(CLEF, JSON.stringify(this.#fiches));
+    } catch {
+      // Navigation privee ou quota atteint : l'application reste utilisable.
+    }
+  }"""
 
     return f'''/**
  * Logique metier de « {intention.titre} ».
@@ -156,35 +245,14 @@ def _store(intention: Intention) -> str:
 
 /** @typedef {{{{ id: string, {", ".join(f"{c.cle}: *" for c in champs)} }}}} Fiche */
 
-const CLEF = '{_echappe_js(intention.pluriel.lower().replace(" ", "-"))}';
+{entete}
 
 const CHAMPS = [
 {chr(10).join(f"  {{ cle: '{c.cle}', libelle: '{_echappe_js(c.libelle)}', type: '{c.type}', requis: {str(c.requis).lower()}, options: {_json(c.options)} }}," for c in champs)}
 ];
 
 class Magasin {{
-  #fiches = [];
-  #stockage;
-
-  /**
-   * @param {{Storage|null}} stockage - localStorage, ou null pour rester en memoire.
-   */
-  constructor(stockage = null) {{
-    this.#stockage = stockage;
-    this.#fiches = this.#charger();
-  }}
-
-  #charger() {{
-    if (this.#stockage) {{
-      try {{
-        const brut = this.#stockage.getItem(CLEF);
-        if (brut) return JSON.parse(brut);
-      }} catch {{
-        // Donnees illisibles : on repart des exemples plutot que de planter.
-      }}
-    }}
-    return this.#exemples();
-  }}
+{constructeur}
 
   #exemples() {{
     return [
@@ -192,14 +260,7 @@ class Magasin {{
     ].map((fiche, index) => ({{ id: `exemple-${{index + 1}}`, ...fiche }}));
   }}
 
-  #enregistrer() {{
-    if (!this.#stockage) return;
-    try {{
-      this.#stockage.setItem(CLEF, JSON.stringify(this.#fiches));
-    }} catch {{
-      // Navigation privee ou quota atteint : l'application reste utilisable.
-    }}
-  }}
+{enregistrement}
 
   /** Toutes les fiches, sans filtre. */
   tout() {{
@@ -305,10 +366,27 @@ def _champ_html(champ: Champ) -> str:
             f'name="{champ.cle}" /> {libelle}</label>'
         )
     else:
-        types = {"nombre": "number", "date": "date", "email": "email", "url": "url"}
+        types = {
+            "nombre": "number",
+            "pourcentage": "number",
+            "etoiles": "number",
+            "date": "date",
+            "heure": "time",
+            "email": "email",
+            "url": "url",
+            "telephone": "tel",
+            "couleur_hex": "color",
+        }
+        bornes = ""
+        if champ.type == "pourcentage":
+            bornes = ' min="0" max="100" step="1"'
+        elif champ.type == "etoiles":
+            bornes = ' min="1" max="5" step="1"'
+        elif champ.type == "nombre":
+            bornes = ' step="any"'
         controle = (
             f'<input type="{types.get(champ.type, "text")}" id="{identifiant}" '
-            f'name="{champ.cle}"{requis} />'
+            f'name="{champ.cle}"{bornes}{requis} />'
         )
 
     return f'        <label for="{identifiant}">{libelle}{controle}</label>'
@@ -384,7 +462,7 @@ def _ui(intention: Intention) -> str:
     for c in champs:
         if c.type == "booleen":
             lectures.append(f"    {c.cle}: document.getElementById('champ-{c.cle}').checked,")
-        elif c.type == "nombre":
+        elif c.type in NUMERIQUES:
             lectures.append(
                 f"    {c.cle}: Number(document.getElementById('champ-{c.cle}').value || 0),"
             )
@@ -777,7 +855,13 @@ SPEC = ".forge-intent.json"
 
 
 def generer(intention: Intention) -> dict[str, str]:
-    """Renvoie tous les fichiers de l'application, chemin -> contenu."""
+    """Tous les fichiers du projet, chemin -> contenu, selon la cible visee."""
+    if intention.cible in ("api", "cli"):
+        # Import tardif : les deux modules se citent mutuellement.
+        from .generation_node import generer_node
+
+        return generer_node(intention, intention.cible)
+
     return {
         "index.html": _html(intention),
         "styles.css": _css(intention),

@@ -94,6 +94,9 @@ modifie, teste, annule et rend compte — c'est l'atelier :
 python3 -m brain atelier --projet ./mon-app
 ```
 
+Il produit trois sortes de projets à partir de la même phrase — **application web**, **API REST**
+ou **outil en ligne de commande** — et sait passer de l'une à l'autre en une instruction.
+
 Un avertissement honnête, détaillé dans [`brain/README.md`](brain/README.md) : l'écart de calcul
 entre ce que vous pouvez entraîner sur une machine et un grand assistant actuel est d'environ **un
 million de fois**. Ce dossier vous donne la chaîne complète et réelle ; il ne vous donne pas

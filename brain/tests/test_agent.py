@@ -180,3 +180,90 @@ class TestAtelierExecution(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestOperationsElargies(unittest.TestCase):
+    """Cibles, types, options, git, archive."""
+
+    def setUp(self) -> None:
+        self.dossier = tempfile.mkdtemp()
+        self.atelier = Atelier(self.dossier)
+        self._faire("crée une application de gestion de clients avec un nom, un email et un statut")
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.dossier, ignore_errors=True)
+
+    def _faire(self, phrase: str):
+        return self.atelier.executer(interpreter(phrase))
+
+    def test_changement_de_cible(self) -> None:
+        racine = Path(self.dossier)
+        self.assertTrue((racine / "index.html").exists())
+
+        resultat = self._faire("passe en API")
+        self.assertFalse(resultat.echec)
+        self.assertTrue((racine / "server.js").exists())
+        # Les fichiers de l'ancienne cible doivent disparaitre, sinon le projet
+        # devient un hybride dont les tests ne s'appliquent plus.
+        self.assertFalse((racine / "index.html").exists())
+        self.assertFalse((racine / "ui.js").exists())
+        self.assertEqual(self.atelier.intention.cible, "api")
+
+    def test_meme_cible_refusee(self) -> None:
+        self.assertTrue(self._faire("passe en web").echec)
+
+    def test_changement_de_type(self) -> None:
+        self._faire("ajoute un champ remarque")
+        resultat = self._faire("change le type de remarque en booleen")
+        self.assertFalse(resultat.echec, resultat.message)
+        champ = next(c for c in self.atelier.intention.champs if c.cle == "remarque")
+        self.assertEqual(champ.type, "booleen")
+        self.assertIn("cochage", self.atelier.intention.fonctions)
+
+    def test_type_inconnu_refuse(self) -> None:
+        self.assertTrue(self._faire("change le type de nom en licorne").echec)
+
+    def test_definition_des_options(self) -> None:
+        resultat = self._faire("options de statut : Prospect, Actif, Perdu")
+        self.assertFalse(resultat.echec, resultat.message)
+        champ = next(c for c in self.atelier.intention.champs if c.cle == "statut")
+        self.assertEqual(champ.options, ["Prospect", "Actif", "Perdu"])
+        self.assertIn("Prospect", (Path(self.dossier) / "index.html").read_text(encoding="utf-8"))
+
+    def test_options_insuffisantes_refusees(self) -> None:
+        self.assertTrue(self._faire("options de statut : Seul").echec)
+
+    def test_archive(self) -> None:
+        resultat = self._faire("archive")
+        self.assertFalse(resultat.echec, resultat.message)
+        self.assertTrue(Path(f"{self.dossier}.zip").exists())
+        Path(f"{self.dossier}.zip").unlink(missing_ok=True)
+
+    @unittest.skipUnless(shutil.which("git"), "git absent")
+    def test_git(self) -> None:
+        resultat = self._faire("git commit version initiale")
+        self.assertFalse(resultat.echec, resultat.detail)
+        self.assertTrue((Path(self.dossier) / ".git").exists())
+        # Un second commit sans changement ne doit pas faire echouer l'atelier.
+        self.assertFalse(self._faire("git commit rien de neuf").echec)
+
+
+@unittest.skipUnless(shutil.which("node"), "Node.js absent")
+class TestParcoursCompletMulticible(unittest.TestCase):
+    def test_web_puis_api_restent_verts(self) -> None:
+        with tempfile.TemporaryDirectory() as dossier:
+            atelier = Atelier(dossier)
+            faire = lambda p: atelier.executer(interpreter(p))  # noqa: E731
+
+            faire("crée une application de gestion de clients avec un nom, un email et un statut")
+            faire("ajoute un champ chiffre d'affaires")
+            faire("options de statut : Prospect, Actif, Perdu")
+            self.assertFalse(faire("teste").echec, "la cible web doit être verte")
+
+            self.assertFalse(faire("passe en API").echec)
+            resultat = faire("teste")
+            self.assertFalse(resultat.echec, f"la cible API doit être verte :\n{resultat.detail}")
+
+            self.assertFalse(faire("transforme en ligne de commande").echec)
+            resultat = faire("teste")
+            self.assertFalse(resultat.echec, f"la cible CLI doit être verte :\n{resultat.detail}")

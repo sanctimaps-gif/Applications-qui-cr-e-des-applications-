@@ -132,7 +132,19 @@ vous › ajoute une case terminé
 ✔ champ « Terminé » (booleen) ajouté — 6 fichier(s) mis à jour
 
 vous › teste
-✔ tests au vert — 11 passés
+✔ tests au vert — 10 passés
+
+vous › passe en API
+✔ projet transformé en API REST (Node)
+
+vous › teste
+✔ tests au vert — 17 passés
+
+vous › git commit première version
+✔ commit enregistré : première version
+
+vous › archive
+✔ archive écrite : mon-app.zip (34 313 o)
 
 vous › annule
 ✔ dernière modification annulée
@@ -146,6 +158,8 @@ vous › annule
 | **Modifier** | ajouter, supprimer, renommer un champ ou une fonction |
 | **Inspecter** | lister les fichiers, décrire le projet, montrer un fichier, voir le diff |
 | **Exécuter** | lancer les tests et rendre compte du résultat |
+| **Transformer** | changer de cible (web ⇄ API ⇄ terminal), corriger le type d'un champ, définir les valeurs d'un choix |
+| **Livrer** | dépôt git local et commit, archive `.zip` du projet |
 | **Revenir** | annuler la dernière modification, consulter l'historique |
 
 ### Pourquoi il ne se trompe pas
@@ -157,8 +171,8 @@ par construction, quel que soit le nombre de modifications enchaînées.
 ### Les garde-fous
 
 - **Écritures confinées** au dossier du projet : `../` et chemins absolus sont refusés (testé).
-- **Un seul programme exécutable** : `node --test` sur les fichiers de test du projet. Jamais une
-  commande venue d'une instruction.
+- **Programmes autorisés, arguments fixes** : `node --test` sur les fichiers de test du projet, et
+  `git init/add/commit` pour la livraison. Jamais une commande venue d'une instruction.
 - **Instantané avant chaque modification**, donc `annule` restaure exactement l'état précédent.
 - **Refus explicite** plutôt que devinette : supprimer le dernier champ, retirer une fonction
   indispensable ou nommer un champ inexistant renvoie une erreur qui explique.
@@ -202,20 +216,34 @@ Compris : Application de tâches
 `--expliquer` s'arrête là, sans rien écrire. La **confiance** et la ligne `ignoré` sont volontaires :
 un générateur qui devine en silence est pire qu'un générateur qui avoue.
 
-### Ce qu'il produit
+### Trois cibles, à partir de la même phrase
 
-Sept fichiers, une application web autonome : `index.html`, `styles.css`, `store.js` (la logique
-métier, pure et testable), `ui.js` (l'affichage), `test/store.test.js`, `package.json`, `README.md`.
-Aucune dépendance, aucun réseau, thème clair et sombre, utilisable au clavier.
+La phrase décide de ce qui est produit. Aucune dépendance dans aucun des trois cas.
+
+| Vous dites… | Vous obtenez | Fichiers |
+|---|---|---|
+| « une application de gestion de… » | page web autonome, thème clair et sombre | `index.html`, `styles.css`, `store.js`, `ui.js`, tests |
+| « une **API REST** de gestion de… » | service HTTP JSON (CRUD, recherche, statistiques, santé) | `server.js`, `store.js`, tests d'API réels |
+| « un outil **en ligne de commande** pour… » | outil de terminal (ajouter, lister, chercher, exporter) | `cli.js`, `store.js`, tests de bout en bout |
+
+La logique métier (`store.js`) est la même partout ; seule la peau change, et la persistance passe
+du navigateur au fichier pour les cibles Node.
+
+```bash
+python3 -m brain coder "Une API REST de gestion de clients avec un nom, un email et un statut" --sortie ./api
+cd api && npm test     # 17 tests, dont 7 avec de vrais appels HTTP
+npm start              # http://127.0.0.1:3000/api/clients
+```
 
 ### Ce qu'il comprend
 
 | Il reconnaît | Exemples |
 |---|---|
-| L'entité | *gestion de*, *liste de*, *carnet de*, *suivi de*, *catalogue de*… + 30 noms courants, et fléchit les inconnus |
+| L'entité | *gestion de*, *liste de*, *carnet de*, *suivi de*, *catalogue de*… + 92 noms courants, et fléchit les inconnus |
 | Les champs | *avec un titre, une priorité et une date* — jusqu'à huit |
-| Les types | date, nombre, booléen, choix, texte long, e-mail, URL, texte — déduits du nom du champ |
-| Les fonctions | recherche, filtre, tri, suppression, édition, statistiques, export CSV, cochage, sauvegarde |
+| Les types | 12 types déduits du nom : texte, texte long, nombre, date, heure, booléen, choix, e-mail, URL, téléphone, couleur, pourcentage, étoiles |
+| Les fonctions | 16 : recherche, filtre, tri, suppression, édition, statistiques, export CSV, import, cochage, pagination, impression, thème, archivage, doublons, sauvegarde, API |
+| La cible | application web, API REST, ou outil en ligne de commande |
 
 ### Comparé à un petit modèle entraîné localement
 
@@ -228,8 +256,9 @@ Aucune dépendance, aucun réseau, thème clair et sombre, utilisable au clavier
 | Extension | une ligne dans le lexique | réentraîner |
 
 Sa limite est réelle et assumée : il couvre les applications de type fiches (créer, lister,
-rechercher, filtrer, trier, exporter). Il ne conçoit pas un moteur de jeu ni un compilateur. Pour
-sortir de ce domaine, il faut un modèle — donc l'échelle décrite plus haut.
+rechercher, filtrer, trier, exporter), sur une seule entité. Il ne gère pas les relations entre
+entités, et ne conçoit ni moteur de jeu ni compilateur. Pour sortir de ce domaine, il faut un
+modèle — donc l'échelle décrite plus haut.
 
 ## Ce que contient chaque fichier
 
@@ -256,7 +285,7 @@ sortir de ce domaine, il faut un modèle — donc l'échelle décrite plus haut.
 python3 -m unittest discover -s brain/tests -t .
 ```
 
-78 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
+96 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
 absence de perte de caractères au découpage, **causalité** (aucune fuite d'information du futur),
 **équivalence entre génération avec et sans cache**, chute réelle de la perte à l'entraînement,
 débordement de contexte, chaîne complète de bout en bout, et contrat du serveur.

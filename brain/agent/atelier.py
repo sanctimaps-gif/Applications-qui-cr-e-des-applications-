@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import difflib
 import json
+import re
 import shutil
 import subprocess
 import time
@@ -284,6 +285,124 @@ class Atelier:
             return Resultat("aucun projet ouvert", echec=True)
         self.intention.titre = operation.arguments.get("valeur", self.intention.titre)
         return self._appliquer(f"projet renommé « {self.intention.titre} »")
+
+    # -- transformations -------------------------------------------------- #
+    def _op_cible(self, operation: Operation) -> Resultat:
+        """Change la nature du projet : page web, API REST ou outil terminal."""
+        if self.intention is None:
+            return Resultat("aucun projet ouvert", echec=True)
+
+        from ..intent.analyse import CIBLES_LISIBLES
+
+        cible = operation.arguments.get("valeur", "web")
+        if cible not in CIBLES_LISIBLES:
+            return Resultat(f"cible inconnue : {cible}", echec=True)
+        if cible == self.intention.cible:
+            return Resultat(f"le projet est déjà une {CIBLES_LISIBLES[cible]}", echec=True)
+
+        # Les fichiers de l'ancienne cible n'ont plus lieu d'etre : les laisser
+        # produirait un projet hybride, avec des tests qui ne s'appliquent plus.
+        avant = self._etat()
+        self._instantanes.append(avant)
+        for relatif in avant:
+            if relatif.endswith((".js", ".html", ".css")) or relatif.startswith("test/"):
+                self._resoudre(relatif).unlink(missing_ok=True)
+
+        self.intention.cible = cible
+        self._ecrire(generer(self.intention))
+        self._dernier_diff = self._diff(avant, self._etat())
+
+        return Resultat(
+            message=f"projet transformé en {CIBLES_LISIBLES[cible]}",
+            detail=self._dernier_diff,
+            modifie=True,
+        )
+
+    def _op_type_champ(self, operation: Operation) -> Resultat:
+        if self.intention is None:
+            return Resultat("aucun projet ouvert", echec=True)
+
+        champ = self._trouver_champ(operation.arguments.get("champ", ""))
+        if champ is None:
+            return Resultat("champ introuvable", echec=True)
+
+        from ..intent.generation import NUMERIQUES
+
+        connus = (
+            "texte", "texte_long", "date", "heure", "booleen", "choix",
+            "email", "url", "telephone", "couleur_hex", *NUMERIQUES,
+        )
+        demande = normalise(operation.arguments.get("type", ""))
+        # « en nombre », « un booléen », « une date » : on retient le type cite.
+        nouveau = next((t for t in connus if normalise(t) in demande or demande in normalise(t)), None)
+        if nouveau is None:
+            return Resultat(f"type inconnu. Types possibles : {', '.join(connus)}", echec=True)
+
+        ancien = champ.type
+        champ.type = nouveau
+        champ.options = options_du_champ(champ.libelle) if nouveau == "choix" else []
+        if nouveau == "choix":
+            self.intention.fonctions.add("filtre")
+        if nouveau == "booleen":
+            self.intention.fonctions.add("cochage")
+
+        return self._appliquer(f"« {champ.libelle} » : {ancien} → {nouveau}")
+
+    def _op_options(self, operation: Operation) -> Resultat:
+        if self.intention is None:
+            return Resultat("aucun projet ouvert", echec=True)
+
+        champ = self._trouver_champ(operation.arguments.get("champ", ""))
+        if champ is None:
+            return Resultat("champ introuvable", echec=True)
+
+        valeurs = [v.strip() for v in re.split(r",|;| et ", operation.arguments.get("valeurs", "")) if v.strip()]
+        if len(valeurs) < 2:
+            return Resultat("donnez au moins deux valeurs, séparées par des virgules", echec=True)
+
+        champ.type = "choix"
+        champ.options = valeurs[:12]
+        self.intention.fonctions.add("filtre")
+        return self._appliquer(f"« {champ.libelle} » : {', '.join(champ.options)}")
+
+    # -- livraison -------------------------------------------------------- #
+    def _op_git(self, operation: Operation) -> Resultat:
+        """Depot git local et commit. Aucune publication : rien ne sort d'ici."""
+        if shutil.which("git") is None:
+            return Resultat("git est introuvable sur cette machine", echec=True)
+        if not self.fichiers():
+            return Resultat("le projet est vide", echec=True)
+
+        message = operation.arguments.get("message", "").strip() or "modification par l'atelier"
+        etapes = [
+            ["git", "init", "-q"],
+            ["git", "add", "-A"],
+            # Identite locale au depot : la configuration globale n'est pas touchee.
+            ["git", "-c", "user.email=forge@localhost", "-c", "user.name=Forge",
+             "commit", "-q", "--no-gpg-sign", "-m", message],
+        ]
+        if (self.racine / ".git").exists():
+            etapes = etapes[1:]
+
+        for etape in etapes:
+            resultat = subprocess.run(etape, cwd=self.racine, capture_output=True, text=True, timeout=60)
+            if resultat.returncode != 0 and "nothing to commit" not in resultat.stdout:
+                return Resultat(
+                    f"« {' '.join(etape[:2])} » a échoué",
+                    detail=(resultat.stderr or resultat.stdout)[:600],
+                    echec=True,
+                )
+        return Resultat(f"commit enregistré : {message}")
+
+    def _op_archiver(self, _: Operation) -> Resultat:
+        """Compresse le projet a cote du dossier, sans rien envoyer nulle part."""
+        if not self.fichiers():
+            return Resultat("le projet est vide", echec=True)
+
+        base = self.racine.parent / self.racine.name
+        archive = shutil.make_archive(str(base), "zip", root_dir=self.racine)
+        taille = Path(archive).stat().st_size
+        return Resultat(f"archive écrite : {archive} ({taille:,} o)")
 
     # -- inspection ----------------------------------------------------- #
     def _op_lister(self, _: Operation) -> Resultat:

@@ -43,7 +43,8 @@ _enregistre(
     "nombre",
     "prix", "montant", "cout", "tarif", "quantite", "nombre", "age", "duree",
     "poids", "taille", "stock", "note", "score", "points", "calories", "budget",
-    "pages", "annee", "numero", "telephone",
+    "pages", "annee", "numero", "chiffre", "chiffre affaires", "solde",
+    "salaire", "revenu", "surface", "distance", "vitesse", "capacite",
 )
 _enregistre(
     "booleen",
@@ -57,7 +58,15 @@ _enregistre(
 )
 _enregistre("texte_long", "description", "notes", "commentaire", "remarque", "resume", "contenu", "adresse")
 _enregistre("email", "email", "courriel", "mail", "e-mail")
-_enregistre("url", "url", "lien", "site", "site web", "adresse web")
+_enregistre("url", "url", "lien", "site", "site web", "adresse web", "photo", "image", "illustration")
+_enregistre(
+    "telephone",
+    "telephone", "tel", "portable", "mobile", "fixe", "numero de telephone",
+)
+_enregistre("couleur_hex", "couleur hex", "teinte", "code couleur")
+_enregistre("pourcentage", "pourcentage", "taux", "progression", "avancement", "remise")
+_enregistre("heure", "heure", "horaire", "moment")
+_enregistre("etoiles", "etoiles", "appreciation", "satisfaction", "evaluation")
 
 #: Valeurs proposees pour les champs de type « choix », selon leur nom.
 OPTIONS_PAR_CHAMP: dict[str, list[str]] = {
@@ -71,6 +80,14 @@ OPTIONS_PAR_CHAMP: dict[str, list[str]] = {
     "genre": ["Général", "Travail", "Personnel"],
     "rayon": ["Fruits et légumes", "Frais", "Épicerie", "Entretien"],
     "couleur": ["Rouge", "Vert", "Bleu", "Jaune"],
+    "tag": ["Important", "Normal", "Plus tard"],
+    "etiquette": ["Important", "Normal", "Plus tard"],
+    "rayon": ["Fruits et légumes", "Frais", "Épicerie", "Entretien"],
+    "saison": ["Printemps", "Été", "Automne", "Hiver"],
+    "frequence": ["Quotidien", "Hebdomadaire", "Mensuel"],
+    "paiement": ["Carte", "Espèces", "Virement"],
+    "civilite": ["Mme", "M.", "Autre"],
+    "taille": ["S", "M", "L", "XL"],
 }
 
 # --------------------------------------------------------------------------- #
@@ -93,6 +110,14 @@ _fonction("statistiques", "statistiques", "stats", "compteur", "compter", "total
 _fonction("export", "exporter", "export", "csv", "telecharger", "sauvegarder en csv")
 _fonction("cochage", "cocher", "marquer", "terminer", "valider", "case a cocher")
 _fonction("persistance", "sauvegarde", "sauvegarder", "conserver", "garder", "persistant", "local", "localstorage")
+
+_fonction("pagination", "pagination", "paginer", "pages", "par page")
+_fonction("import", "importer", "import", "charger un csv", "reprendre un fichier")
+_fonction("impression", "imprimer", "impression", "version papier")
+_fonction("theme", "theme sombre", "mode sombre", "clair et sombre")
+_fonction("archivage", "archiver", "archivage", "corbeille")
+_fonction("doublons", "doublons", "eviter les doublons", "unicite")
+_fonction("api", "api", "api rest", "endpoints", "service web")
 
 #: Fonctions presentes par defaut : une application sans ajout ni liste n'a
 #: aucun interet, et personne ne pense a les demander.
@@ -171,6 +196,61 @@ ENTITES_CONNUES: dict[str, tuple[str, str]] = {
     "seance": ("Séance", "Séances"),
     "habitudes": ("Habitude", "Habitudes"),
     "habitude": ("Habitude", "Habitudes"),
+    "commandes": ("Commande", "Commandes"),
+    "commande": ("Commande", "Commandes"),
+    "taches": ("Tâche", "Tâches"),
+    "abonnements": ("Abonnement", "Abonnements"),
+    "abonnement": ("Abonnement", "Abonnements"),
+    "fournisseurs": ("Fournisseur", "Fournisseurs"),
+    "fournisseur": ("Fournisseur", "Fournisseurs"),
+    "vehicules": ("Véhicule", "Véhicules"),
+    "vehicule": ("Véhicule", "Véhicules"),
+    "outils": ("Outil", "Outils"),
+    "outil": ("Outil", "Outils"),
+    "musiques": ("Morceau", "Morceaux"),
+    "morceaux": ("Morceau", "Morceaux"),
+    "series": ("Série", "Séries"),
+    "serie": ("Série", "Séries"),
+    "jeux": ("Jeu", "Jeux"),
+    "jeu": ("Jeu", "Jeux"),
+    "voyages": ("Voyage", "Voyages"),
+    "voyage": ("Voyage", "Voyages"),
+    "adherents": ("Adhérent", "Adhérents"),
+    "adherent": ("Adhérent", "Adhérents"),
+    "membres": ("Membre", "Membres"),
+    "membre": ("Membre", "Membres"),
+    "candidatures": ("Candidature", "Candidatures"),
+    "candidature": ("Candidature", "Candidatures"),
+    "reservations": ("Réservation", "Réservations"),
+    "reservation": ("Réservation", "Réservations"),
+    "tickets": ("Ticket", "Tickets"),
+    "ticket": ("Ticket", "Tickets"),
+    "incidents": ("Incident", "Incidents"),
+    "incident": ("Incident", "Incidents"),
+    "stocks": ("Article", "Stocks"),
+    "recolte": ("Récolte", "Récoltes"),
+    "recoltes": ("Récolte", "Récoltes"),
+    "entrainements": ("Entraînement", "Entraînements"),
+    "entrainement": ("Entraînement", "Entraînements"),
+    "repas": ("Repas", "Repas"),
+    "medicaments": ("Médicament", "Médicaments"),
+    "medicament": ("Médicament", "Médicaments"),
+    "documents": ("Document", "Documents"),
+    "document": ("Document", "Documents"),
+    "signets": ("Signet", "Signets"),
+    "signet": ("Signet", "Signets"),
+    "citations": ("Citation", "Citations"),
+    "citation": ("Citation", "Citations"),
+    "idees": ("Idée", "Idées"),
+    "idee": ("Idée", "Idées"),
+    "budgets": ("Budget", "Budgets"),
+    "budget": ("Budget", "Budgets"),
+    "salles": ("Salle", "Salles"),
+    "salle": ("Salle", "Salles"),
+    "cours": ("Cours", "Cours"),
+    "devis": ("Devis", "Devis"),
+    "paiements": ("Paiement", "Paiements"),
+    "paiement": ("Paiement", "Paiements"),
 }
 
 #: Mots qui ne peuvent jamais designer une entite ni un champ.
@@ -250,3 +330,31 @@ def options_du_champ(libelle: str) -> list[str]:
         if mot in OPTIONS_PAR_CHAMP:
             return list(OPTIONS_PAR_CHAMP[mot])
     return ["Option A", "Option B"]
+
+
+# --------------------------------------------------------------------------- #
+# Cibles : le meme plan peut donner une application web, une API ou un outil
+# en ligne de commande. La phrase decide.
+# --------------------------------------------------------------------------- #
+CIBLES_PAR_MOT: dict[str, str] = {}
+
+
+def _cible(nom: str, *mots: str) -> None:
+    for mot in mots:
+        CIBLES_PAR_MOT[normalise(mot)] = nom
+
+
+_cible("api", "api", "api rest", "rest", "backend", "service web", "serveur", "endpoints", "microservice")
+_cible("cli", "ligne de commande", "cli", "terminal", "console", "script shell", "en ligne de commande")
+_cible("web", "web", "page web", "site", "interface", "navigateur", "application web")
+
+
+def cible_demandee(texte: str) -> str:
+    """Cible de generation deduite de la phrase. « web » par defaut."""
+    plat = normalise(texte)
+    meilleure, position = "web", len(plat) + 1
+    for mot, cible in CIBLES_PAR_MOT.items():
+        trouve = re.search(rf"\b{re.escape(mot)}\b", plat)
+        if trouve and trouve.start() < position:
+            meilleure, position = cible, trouve.start()
+    return meilleure

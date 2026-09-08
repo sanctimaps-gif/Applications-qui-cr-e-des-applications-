@@ -130,6 +130,46 @@ def interpreter(phrase: str) -> Operation:
             )
         raise Incomprise(brute, ["précisez : « renomme <champ> en <nouveau nom> »"])
 
+    # 4bis. Changer de cible : « passe en API », « transforme en ligne de commande »
+    if re.search(r"\b(passe|passer|transforme|transformer|bascule|basculer|cible|convertis)\b", plat):
+        from ..intent.lexique import cible_demandee
+
+        cible = cible_demandee(brute)
+        if cible != "web" or re.search(r"\b(web|navigateur|page)\b", plat):
+            return Operation("cible", {"valeur": cible}, source=brute)
+
+    # 4ter. Changer le type d'un champ : « change le type de prix en nombre »
+    type_demande = re.search(
+        r"\btype\b.*?\b(de|du|d)\b\s+(.+?)\s+\ben\b\s+(.+)$", brute, re.IGNORECASE
+    )
+    if type_demande:
+        return Operation(
+            "type_champ",
+            {"champ": _nom_de_champ(type_demande.group(2)), "type": normalise(type_demande.group(3))},
+            source=brute,
+        )
+
+    # 4quater. Definir les valeurs d'un champ a choix.
+    options = re.search(
+        r"\b(?:options|valeurs|choix)\b\s+(?:de|du|d\'|pour)?\s*(.+?)\s*(?::|sont|=)\s*(.+)$",
+        brute,
+        re.IGNORECASE,
+    )
+    if options:
+        return Operation(
+            "options",
+            {"champ": _nom_de_champ(options.group(1)), "valeurs": options.group(2)},
+            source=brute,
+        )
+
+    # 4quinquies. Git et archive.
+    if re.search(r"\bgit\b|\bcommit\b|\bversionne\b", plat):
+        message = _apres(brute, ("commit", "git commit", "versionne"))
+        return Operation("git", {"message": message}, source=brute)
+
+    if re.search(r"\b(zip|archive|archiver|empaquette|paquet)\b", plat):
+        return Operation("archiver", source=brute)
+
     # 5. Ajout : un champ, ou une fonction.
     if any(re.search(rf"\b{v}\b", plat) for v in map(normalise, _AJOUT)):
         reste = _apres(brute, _AJOUT)
@@ -193,6 +233,16 @@ AIDE = """Instructions comprises par l'atelier
 
   EXÉCUTER
     teste                                lance les tests du projet
+
+  TRANSFORMER
+    passe en API                         service REST au lieu d'une page web
+    transforme en ligne de commande      outil de terminal
+    change le type de prix en nombre     corrige un type mal deviné
+    options de statut : Neuf, Vendu      valeurs d'un champ à choix
+
+  LIVRER
+    git commit ajout du champ prix       dépôt git local + commit
+    archive                              projet compressé en .zip
 
   REVENIR
     annule                               défait la dernière modification

@@ -17,6 +17,7 @@ from .lexique import (
     FONCTIONS_PAR_MOT,
     MOTS_VIDES,
     capitalise,
+    cible_demandee,
     identifiant,
     normalise,
     options_du_champ,
@@ -24,6 +25,13 @@ from .lexique import (
     singulier,
     type_du_champ,
 )
+
+#: Libelles lisibles des cibles de generation.
+CIBLES_LISIBLES = {
+    "web": "application web (navigateur)",
+    "api": "API REST (Node)",
+    "cli": "outil en ligne de commande (Node)",
+}
 
 
 @dataclass
@@ -50,6 +58,8 @@ class Intention:
     compris: list[str] = field(default_factory=list)
     ignore: list[str] = field(default_factory=list)
     confiance: float = 0.0
+    #: « web » (navigateur), « api » (service REST) ou « cli » (terminal).
+    cible: str = "web"
 
     # ------------------------------------------------------------------ #
     # Persistance : le projet garde sa specification, donc il reste
@@ -74,6 +84,7 @@ class Intention:
                 for c in self.champs
             ],
             "fonctions": sorted(self.fonctions),
+            "cible": self.cible,
             "confiance": self.confiance,
         }
 
@@ -96,6 +107,7 @@ class Intention:
             ],
             fonctions=set(donnees.get("fonctions", [])),
             confiance=float(donnees.get("confiance", 1.0)),
+            cible=donnees.get("cible", "web"),
         )
 
     @property
@@ -116,6 +128,7 @@ class Intention:
             details = f" ({', '.join(champ.options)})" if champ.options else ""
             lignes.append(f"      - {champ.libelle} : {champ.type}{details}")
         lignes.append(f"  fonctions : {', '.join(sorted(self.fonctions))}")
+        lignes.append(f"  cible     : {CIBLES_LISIBLES.get(self.cible, self.cible)}")
         lignes.append(f"  confiance : {self.confiance:.0%}")
         if self.ignore:
             lignes.append("  ignore    : " + ", ".join(self.ignore))
@@ -328,6 +341,7 @@ def analyser(demande: str) -> Intention:
         pluriel=pluriel_nom,
         champs=champs,
         fonctions=fonctions,
+        cible=cible_demandee(demande),
         compris=compris,
         ignore=ignore,
         confiance=min(1.0, confiance),

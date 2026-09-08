@@ -255,3 +255,114 @@ class TestCodeExecutable(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestCibles(unittest.TestCase):
+    """La même phrase peut donner une page web, une API ou un outil terminal."""
+
+    def test_detection(self) -> None:
+        self.assertEqual(analyser("Une application de gestion de tâches").cible, "web")
+        self.assertEqual(analyser("Une API REST de gestion de clients").cible, "api")
+        self.assertEqual(
+            analyser("Un outil en ligne de commande pour mes dépenses").cible, "cli"
+        )
+
+    def test_fichiers_par_cible(self) -> None:
+        api = generer(analyser("Une API REST de gestion de clients avec un nom"))
+        self.assertIn("server.js", api)
+        self.assertIn("test/api.test.js", api)
+        self.assertNotIn("index.html", api)
+
+        cli = generer(analyser("Un outil en ligne de commande pour mes tâches avec un titre"))
+        self.assertIn("cli.js", cli)
+        self.assertIn("test/cli.test.js", cli)
+
+        web = generer(analyser("Une application de gestion de tâches avec un titre"))
+        self.assertIn("index.html", web)
+        self.assertNotIn("server.js", web)
+
+    def test_la_cible_est_conservee(self) -> None:
+        from brain.intent.analyse import Intention
+
+        intention = analyser("Une API REST de gestion de clients avec un nom")
+        self.assertEqual(Intention.from_dict(intention.to_dict()).cible, "api")
+
+    def test_persistance_fichier_pour_node(self) -> None:
+        api = generer(analyser("Une API REST de gestion de clients avec un nom"))
+        self.assertIn("node:fs", api["store.js"])
+        web = generer(analyser("Une application de gestion de tâches avec un titre"))
+        self.assertNotIn("node:fs", web["store.js"])
+
+
+class TestTypesEtendus(unittest.TestCase):
+    def test_nouveaux_types_reconnus(self) -> None:
+        intention = analyser(
+            "Un carnet de contacts avec un nom, un téléphone, une couleur hex, "
+            "un pourcentage et une heure"
+        )
+        types = {c.libelle: c.type for c in intention.champs}
+        self.assertEqual(types.get("Téléphone"), "telephone")
+        self.assertEqual(types.get("Couleur hex"), "couleur_hex")
+        self.assertEqual(types.get("Pourcentage"), "pourcentage")
+        self.assertEqual(types.get("Heure"), "heure")
+
+    def test_controles_html_adaptes(self) -> None:
+        html = generer(
+            analyser("Une liste de contacts avec un nom, un téléphone, une heure et une couleur hex")
+        )["index.html"]
+        for attendu in ('type="tel"', 'type="time"', 'type="color"'):
+            self.assertIn(attendu, html)
+
+
+@unittest.skipUnless(shutil.which("node"), "Node.js absent")
+class TestCiblesExecutables(unittest.TestCase):
+    """Les trois cibles doivent produire des projets qui passent leurs tests."""
+
+    def _ecrire_et_tester(self, phrase: str, fichiers_tests: list[str]) -> None:
+        with tempfile.TemporaryDirectory() as dossier:
+            racine = Path(dossier)
+            for chemin, contenu in generer(analyser(phrase)).items():
+                cible = racine / chemin
+                cible.parent.mkdir(parents=True, exist_ok=True)
+                cible.write_text(contenu, encoding="utf-8")
+
+            resultat = subprocess.run(
+                ["node", "--test", *fichiers_tests],
+                cwd=racine,
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            self.assertEqual(
+                resultat.returncode, 0, f"« {phrase} » :\n{resultat.stdout[-2500:]}"
+            )
+
+    def test_api_rest(self) -> None:
+        self._ecrire_et_tester(
+            "Une API REST de gestion de clients avec un nom, un email et un statut",
+            ["test/store.test.js", "test/api.test.js"],
+        )
+
+    def test_ligne_de_commande(self) -> None:
+        self._ecrire_et_tester(
+            "Un outil en ligne de commande pour suivre mes dépenses avec un libellé et un montant",
+            ["test/store.test.js", "test/cli.test.js"],
+        )
+
+    def test_npm_test_des_cibles_node(self) -> None:
+        for phrase in (
+            "Une API REST de gestion de produits avec un nom et un prix",
+            "Un outil en ligne de commande pour mes notes avec un titre",
+        ):
+            with tempfile.TemporaryDirectory() as dossier:
+                racine = Path(dossier)
+                for chemin, contenu in generer(analyser(phrase)).items():
+                    cible = racine / chemin
+                    cible.parent.mkdir(parents=True, exist_ok=True)
+                    cible.write_text(contenu, encoding="utf-8")
+
+                script = json.loads((racine / "package.json").read_text(encoding="utf-8"))["scripts"]["test"]
+                resultat = subprocess.run(
+                    script, cwd=racine, shell=True, capture_output=True, text=True, timeout=180
+                )
+                self.assertEqual(resultat.returncode, 0, f"{script} :\n{resultat.stdout[-2000:]}")
