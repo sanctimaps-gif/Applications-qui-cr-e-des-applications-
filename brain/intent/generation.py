@@ -730,7 +730,7 @@ def _package(intention: Intention) -> str:
   "version": "1.0.0",
   "private": true,
   "scripts": {{
-    "test": "node --test test/"
+    "test": "node --test test/store.test.js"
   }}
 }}
 """
@@ -771,9 +771,14 @@ Les tests couvrent la logique métier (`store.js`), indépendante de l'affichage
 # --------------------------------------------------------------------------- #
 # Point d'entree
 # --------------------------------------------------------------------------- #
+#: Nom du fichier qui conserve la specification comprise. Sa presence rend le
+#: projet modifiable par l'atelier, sans jamais avoir a relire le code genere.
+SPEC = ".forge-intent.json"
+
+
 def generer(intention: Intention) -> dict[str, str]:
     """Renvoie tous les fichiers de l'application, chemin -> contenu."""
-    fichiers = {
+    return {
         "index.html": _html(intention),
         "styles.css": _css(intention),
         "store.js": _store(intention),
@@ -781,5 +786,5 @@ def generer(intention: Intention) -> dict[str, str]:
         "test/store.test.js": _tests(intention),
         "package.json": _package(intention),
         "README.md": _lisez_moi(intention),
+        SPEC: json.dumps(intention.to_dict(), ensure_ascii=False, indent=2) + "\n",
     }
-    return fichiers

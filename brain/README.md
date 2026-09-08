@@ -105,6 +105,72 @@ Rien ne sort de votre machine.
 
 ---
 
+## L'atelier — un agent de codage, sans aucun modèle
+
+Ce qui fait Claude Code n'est pas seulement le modèle : c'est la **boucle d'agent** — les outils,
+l'édition de fichiers, l'exécution des tests, l'itération, l'annulation, les garde-fous. Tout cela
+se construit sans IA. `brain/agent/` est cette boucle.
+
+```bash
+python3 -m brain atelier --projet ./mon-app
+```
+
+```
+Atelier Forge  —  aucun modèle, aucune clé, tout en local
+projet : /home/vous/mon-app
+
+vous › crée une application de gestion de tâches avec un titre et une priorité
+✔ « Application de tâches » créée
+
+vous › ajoute un champ prix
+✔ champ « Prix » (nombre) ajouté — 5 fichier(s) mis à jour
+  --- a/store.js
+  +++ b/store.js
+  +      prix: 0,
+
+vous › ajoute une case terminé
+✔ champ « Terminé » (booleen) ajouté — 6 fichier(s) mis à jour
+
+vous › teste
+✔ tests au vert — 11 passés
+
+vous › annule
+✔ dernière modification annulée
+```
+
+### Ce qu'il sait faire
+
+| | |
+|---|---|
+| **Créer** | une application complète à partir d'une phrase |
+| **Modifier** | ajouter, supprimer, renommer un champ ou une fonction |
+| **Inspecter** | lister les fichiers, décrire le projet, montrer un fichier, voir le diff |
+| **Exécuter** | lancer les tests et rendre compte du résultat |
+| **Revenir** | annuler la dernière modification, consulter l'historique |
+
+### Pourquoi il ne se trompe pas
+
+Chaque modification passe par la **spécification** du projet (`.forge-intent.json`), pas par une
+retouche du code : l'atelier modifie la spécification, puis régénère. Le code reste donc cohérent
+par construction, quel que soit le nombre de modifications enchaînées.
+
+### Les garde-fous
+
+- **Écritures confinées** au dossier du projet : `../` et chemins absolus sont refusés (testé).
+- **Un seul programme exécutable** : `node --test` sur les fichiers de test du projet. Jamais une
+  commande venue d'une instruction.
+- **Instantané avant chaque modification**, donc `annule` restaure exactement l'état précédent.
+- **Refus explicite** plutôt que devinette : supprimer le dernier champ, retirer une fonction
+  indispensable ou nommer un champ inexistant renvoie une erreur qui explique.
+
+### Sans terminal
+
+```bash
+python3 -m brain atelier --projet ./mon-app --faire \
+  "crée une liste de tâches avec un titre et une priorité" \
+  "ajoute un champ prix" "teste"
+```
+
 ## Le compilateur d'intention — du français vers du code, sans modèle
 
 Comprendre une demande et écrire le code correspondant ne demande pas forcément un modèle de langue.
@@ -180,6 +246,9 @@ sortir de ce domaine, il faut un modèle — donc l'échelle décrite plus haut.
 | `intent/lexique.py` | Le vocabulaire français reconnu : entités, types de champs, fonctions. |
 | `intent/analyse.py` | Analyse de la phrase vers une spécification, avec confiance et oublis déclarés. |
 | `intent/generation.py` | Émission du code : HTML, CSS, logique métier, affichage, tests. |
+| `agent/commandes.py` | Instruction française → opération nommée, ou refus argumenté. |
+| `agent/atelier.py` | La boucle : outils confinés, régénération, instantanés, tests, historique. |
+| `agent/repl.py` | L'interface en console, avec diffs colorés. |
 
 ## Les tests
 
@@ -187,13 +256,15 @@ sortir de ce domaine, il faut un modèle — donc l'échelle décrite plus haut.
 python3 -m unittest discover -s brain/tests -t .
 ```
 
-59 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
+78 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
 absence de perte de caractères au découpage, **causalité** (aucune fuite d'information du futur),
 **équivalence entre génération avec et sans cache**, chute réelle de la perte à l'entraînement,
 débordement de contexte, chaîne complète de bout en bout, et contrat du serveur.
 
 Pour le compilateur d'intention, le test décisif ne se contente pas de lire le code produit :
 il **génère quatre applications, les exécute sous Node et fait passer leurs propres tests**.
+L'atelier est testé de la même façon : une session complète est jouée, puis les tests du
+projet produit doivent passer.
 
 ## Ce qui manque pour aller plus loin
 

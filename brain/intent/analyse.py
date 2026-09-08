@@ -51,6 +51,53 @@ class Intention:
     ignore: list[str] = field(default_factory=list)
     confiance: float = 0.0
 
+    # ------------------------------------------------------------------ #
+    # Persistance : le projet garde sa specification, donc il reste
+    # modifiable. C'est ce qui permet a l'atelier de faire evoluer une
+    # application sans jamais relire ni deviner le code deja ecrit.
+    # ------------------------------------------------------------------ #
+    def to_dict(self) -> dict:
+        return {
+            "version": 1,
+            "demande": self.demande,
+            "titre": self.titre,
+            "singulier": self.singulier,
+            "pluriel": self.pluriel,
+            "champs": [
+                {
+                    "cle": c.cle,
+                    "libelle": c.libelle,
+                    "type": c.type,
+                    "options": list(c.options),
+                    "requis": c.requis,
+                }
+                for c in self.champs
+            ],
+            "fonctions": sorted(self.fonctions),
+            "confiance": self.confiance,
+        }
+
+    @classmethod
+    def from_dict(cls, donnees: dict) -> "Intention":
+        return cls(
+            demande=donnees.get("demande", ""),
+            titre=donnees.get("titre", "Application"),
+            singulier=donnees.get("singulier", "Élément"),
+            pluriel=donnees.get("pluriel", "Éléments"),
+            champs=[
+                Champ(
+                    cle=c["cle"],
+                    libelle=c["libelle"],
+                    type=c["type"],
+                    options=list(c.get("options", [])),
+                    requis=bool(c.get("requis", False)),
+                )
+                for c in donnees.get("champs", [])
+            ],
+            fonctions=set(donnees.get("fonctions", [])),
+            confiance=float(donnees.get("confiance", 1.0)),
+        )
+
     @property
     def champ_principal(self) -> Champ:
         """Le champ qui sert de titre a chaque fiche."""

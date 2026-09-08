@@ -87,6 +87,13 @@ le compilateur d'intention le fait sans entraînement, en 30 ms, et correctement
 python3 -m brain coder "Une liste de tâches avec un titre, une priorité et une échéance, avec recherche"
 ```
 
+Et si vous voulez **un agent de codage à la Claude Code, sans aucune IA** — qui comprend,
+modifie, teste, annule et rend compte — c'est l'atelier :
+
+```bash
+python3 -m brain atelier --projet ./mon-app
+```
+
 Un avertissement honnête, détaillé dans [`brain/README.md`](brain/README.md) : l'écart de calcul
 entre ce que vous pouvez entraîner sur une machine et un grand assistant actuel est d'environ **un
 million de fois**. Ce dossier vous donne la chaîne complète et réelle ; il ne vous donne pas

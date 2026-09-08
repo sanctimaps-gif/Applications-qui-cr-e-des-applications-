@@ -161,6 +161,13 @@ def _servir(args: argparse.Namespace) -> int:
     return 0
 
 
+def _atelier(args: argparse.Namespace) -> int:
+    """Agent de codage interactif : comprend, modifie, teste, annule."""
+    from .agent import demarrer
+
+    return demarrer(args.projet, args.faire)
+
+
 def _coder(args: argparse.Namespace) -> int:
     """Comprend une phrase francaise et ecrit l'application correspondante."""
     from .intent import analyser, generer
@@ -242,6 +249,18 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--device", default="auto")
 
     p = sous.add_parser(
+        "atelier",
+        help="agent de codage interactif, sans modele ni cle",
+    )
+    p.add_argument("--projet", default="./application")
+    p.add_argument(
+        "--faire",
+        nargs="*",
+        default=None,
+        help="instructions a executer sans mode interactif (utile en script)",
+    )
+
+    p = sous.add_parser(
         "coder",
         help="comprend une phrase francaise et ecrit l'application (sans modele)",
     )
@@ -265,6 +284,7 @@ def main(argv: list[str] | None = None) -> int:
         "parler": _parler,
         "servir": _servir,
         "coder": _coder,
+        "atelier": _atelier,
     }[args.commande](args)
 
 

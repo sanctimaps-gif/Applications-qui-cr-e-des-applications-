@@ -216,6 +216,29 @@ class TestCodeExecutable(unittest.TestCase):
                         resultat.returncode, 0, f"{nom} invalide pour « {phrase} » :\n{resultat.stderr}"
                     )
 
+    def test_le_script_npm_test_declare_fonctionne(self) -> None:
+        """Le README dit « npm test » : la commande declaree doit marcher.
+
+        Elle ne marchait pas : `node --test test/` fait interpreter le dossier
+        comme un module sur certaines versions de Node.
+        """
+        with tempfile.TemporaryDirectory() as dossier:
+            racine = Path(dossier)
+            for chemin, contenu in generer(analyser("Une liste de tâches avec un titre")).items():
+                cible = racine / chemin
+                cible.parent.mkdir(parents=True, exist_ok=True)
+                cible.write_text(contenu, encoding="utf-8")
+
+            script = json.loads((racine / "package.json").read_text(encoding="utf-8"))["scripts"]["test"]
+            resultat = subprocess.run(
+                script, cwd=racine, shell=True, capture_output=True, text=True, timeout=120
+            )
+            self.assertEqual(
+                resultat.returncode,
+                0,
+                f"« {script} » echoue :\n{resultat.stdout[-1500:]}{resultat.stderr[-800:]}",
+            )
+
     def test_le_javascript_est_syntaxiquement_valide(self) -> None:
         with tempfile.TemporaryDirectory() as dossier:
             racine = Path(dossier)
