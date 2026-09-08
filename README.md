@@ -80,6 +80,13 @@ export FORGE_PROVIDER_ORDER=custom
 node dist/cli.js doctor      # ● custom  API joignable
 ```
 
+**Vous voulez seulement transformer une phrase en code ?** Alors un modèle n'est pas nécessaire :
+le compilateur d'intention le fait sans entraînement, en 30 ms, et correctement à tous les coups.
+
+```bash
+python3 -m brain coder "Une liste de tâches avec un titre, une priorité et une échéance, avec recherche"
+```
+
 Un avertissement honnête, détaillé dans [`brain/README.md`](brain/README.md) : l'écart de calcul
 entre ce que vous pouvez entraîner sur une machine et un grand assistant actuel est d'environ **un
 million de fois**. Ce dossier vous donne la chaîne complète et réelle ; il ne vous donne pas

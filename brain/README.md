@@ -1,5 +1,15 @@
 # forge-brain — créer une IA à partir de zéro
 
+> **Vous voulez juste comprendre une phrase et la traduire en code ?**
+> Alors ne passez pas par un modèle. Le [compilateur d'intention](#le-compilateur-dintention--du-français-vers-du-code-sans-modèle)
+> fait exactement cela, en 30 millisecondes, sans entraînement, sans clé, et
+> **correctement à tous les coups** :
+>
+> ```bash
+> python3 -m brain coder "Une liste de tâches avec un titre, une priorité et une échéance, avec recherche"
+> ```
+
+
 Tokeniseur, architecture, entraînement, génération, service : chaque pièce est écrite ici. **Aucun
 poids pré-entraîné, aucune clé d'API, aucun appel à un modèle extérieur.** À la fin, vous possédez
 un modèle que vous avez entraîné, qui tourne sur votre machine, et que Forge utilise comme
@@ -95,6 +105,66 @@ Rien ne sort de votre machine.
 
 ---
 
+## Le compilateur d'intention — du français vers du code, sans modèle
+
+Comprendre une demande et écrire le code correspondant ne demande pas forcément un modèle de langue.
+Sur un domaine délimité, une analyse grammaticale explicite fait mieux : elle est **déterministe**,
+**instantanée** et **juste par construction**.
+
+```bash
+python3 -m brain coder "Une application de gestion de tâches avec un titre, une priorité, \
+  une date d'échéance et une case terminé, avec recherche et export CSV" --sortie ./mon-app
+
+cd mon-app && npm test        # les tests écrits par le générateur
+open index.html               # l'application, par simple double-clic
+```
+
+Ce qu'il affiche avant d'écrire quoi que ce soit :
+
+```
+Compris : Application de tâches
+  entite    : Tâche / Tâches
+  champs    :
+      - Titre : texte
+      - Priorité : choix (Basse, Moyenne, Haute, Urgente)
+      - Date échéance : date
+      - Terminé : booleen
+  fonctions : ajout, cochage, export, filtre, liste, persistance, recherche, suppression, tri
+  confiance : 100%
+```
+
+`--expliquer` s'arrête là, sans rien écrire. La **confiance** et la ligne `ignoré` sont volontaires :
+un générateur qui devine en silence est pire qu'un générateur qui avoue.
+
+### Ce qu'il produit
+
+Sept fichiers, une application web autonome : `index.html`, `styles.css`, `store.js` (la logique
+métier, pure et testable), `ui.js` (l'affichage), `test/store.test.js`, `package.json`, `README.md`.
+Aucune dépendance, aucun réseau, thème clair et sombre, utilisable au clavier.
+
+### Ce qu'il comprend
+
+| Il reconnaît | Exemples |
+|---|---|
+| L'entité | *gestion de*, *liste de*, *carnet de*, *suivi de*, *catalogue de*… + 30 noms courants, et fléchit les inconnus |
+| Les champs | *avec un titre, une priorité et une date* — jusqu'à huit |
+| Les types | date, nombre, booléen, choix, texte long, e-mail, URL, texte — déduits du nom du champ |
+| Les fonctions | recherche, filtre, tri, suppression, édition, statistiques, export CSV, cochage, sauvegarde |
+
+### Comparé à un petit modèle entraîné localement
+
+| | Compilateur d'intention | Modèle `nano`/`micro` entraîné ici |
+|---|---|---|
+| Code correct | **toujours** | rarement |
+| Vitesse | ~30 ms | secondes à minutes |
+| Coût | nul | entraînement + inférence |
+| Hors du domaine prévu | le dit franchement | invente |
+| Extension | une ligne dans le lexique | réentraîner |
+
+Sa limite est réelle et assumée : il couvre les applications de type fiches (créer, lister,
+rechercher, filtrer, trier, exporter). Il ne conçoit pas un moteur de jeu ni un compilateur. Pour
+sortir de ce domaine, il faut un modèle — donc l'échelle décrite plus haut.
+
 ## Ce que contient chaque fichier
 
 | Fichier | Rôle |
@@ -107,6 +177,9 @@ Rien ne sort de votre machine.
 | `chat.py` | Format de dialogue et ajustement par instructions (SFT). |
 | `serve.py` | API compatible OpenAI, bibliothèque standard uniquement. |
 | `config.py` | Tailles de modèles et estimation honnête de leur coût. |
+| `intent/lexique.py` | Le vocabulaire français reconnu : entités, types de champs, fonctions. |
+| `intent/analyse.py` | Analyse de la phrase vers une spécification, avec confiance et oublis déclarés. |
+| `intent/generation.py` | Émission du code : HTML, CSS, logique métier, affichage, tests. |
 
 ## Les tests
 
@@ -114,10 +187,13 @@ Rien ne sort de votre machine.
 python3 -m unittest discover -s brain/tests -t .
 ```
 
-34 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
+59 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
 absence de perte de caractères au découpage, **causalité** (aucune fuite d'information du futur),
 **équivalence entre génération avec et sans cache**, chute réelle de la perte à l'entraînement,
 débordement de contexte, chaîne complète de bout en bout, et contrat du serveur.
+
+Pour le compilateur d'intention, le test décisif ne se contente pas de lire le code produit :
+il **génère quatre applications, les exécute sous Node et fait passer leurs propres tests**.
 
 ## Ce qui manque pour aller plus loin
 

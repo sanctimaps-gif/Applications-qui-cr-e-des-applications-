@@ -161,6 +161,33 @@ def _servir(args: argparse.Namespace) -> int:
     return 0
 
 
+def _coder(args: argparse.Namespace) -> int:
+    """Comprend une phrase francaise et ecrit l'application correspondante."""
+    from .intent import analyser, generer
+
+    demande = " ".join(args.demande).strip()
+    intention = analyser(demande)
+    print(intention.resume())
+
+    if args.expliquer:
+        return 0
+
+    sortie = Path(args.sortie)
+    fichiers = generer(intention)
+    for chemin, contenu in fichiers.items():
+        cible = sortie / chemin
+        cible.parent.mkdir(parents=True, exist_ok=True)
+        cible.write_text(contenu, encoding="utf-8")
+
+    total = sum(len(c) for c in fichiers.values())
+    print(f"\n{len(fichiers)} fichiers ecrits dans {sortie} ({total:,} caracteres)")
+    for chemin in fichiers:
+        print(f"  {chemin}")
+    print(f"\n  Ouvrir      : {sortie / 'index.html'}")
+    print(f"  Tester      : cd {sortie} && npm test")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parseur = argparse.ArgumentParser(
         prog="brain",
@@ -214,6 +241,18 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--port", type=int, default=8377)
     p.add_argument("--device", default="auto")
 
+    p = sous.add_parser(
+        "coder",
+        help="comprend une phrase francaise et ecrit l'application (sans modele)",
+    )
+    p.add_argument("demande", nargs="+")
+    p.add_argument("--sortie", default="./application")
+    p.add_argument(
+        "--expliquer",
+        action="store_true",
+        help="montre ce qui a ete compris, sans rien ecrire",
+    )
+
     args = parseur.parse_args(argv)
 
     if args.commande == "tailles":
@@ -225,6 +264,7 @@ def main(argv: list[str] | None = None) -> int:
         "ajuster": _ajuster,
         "parler": _parler,
         "servir": _servir,
+        "coder": _coder,
     }[args.commande](args)
 
 
