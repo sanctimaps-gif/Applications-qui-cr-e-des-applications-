@@ -6,8 +6,10 @@
 > **correctement à tous les coups** :
 >
 > ```bash
-> python3 -m brain coder "Une liste de tâches avec un titre, une priorité et une échéance, avec recherche"
+> python3 -m brain coder "Un carnet de contacts"
 > ```
+>
+> Inutile d'énumérer les champs : il connaît 67 domaines et sait ce qu'ils contiennent.
 
 
 Tokeniseur, architecture, entraînement, génération, service : chaque pièce est écrite ici. **Aucun
@@ -119,8 +121,12 @@ python3 -m brain atelier --projet ./mon-app
 Atelier Forge  —  aucun modèle, aucune clé, tout en local
 projet : /home/vous/mon-app
 
-vous › crée une application de gestion de tâches avec un titre et une priorité
-✔ « Application de tâches » créée
+vous › crée une liste de tâches
+✔ « Liste de tâches » créée dans /home/vous/mon-app
+  Compris : Liste de tâches
+    champs    : Titre, Priorité, Échéance, Projet, Terminé, Notes
+    deduit    : 6 champ(s) deduit(s) de ce que font les gestionnaires de tâches
+    confiance : 100%
 
 vous › ajoute un champ prix
 ✔ champ « Prix » (nombre) ajouté — 5 fichier(s) mis à jour
@@ -192,8 +198,10 @@ Sur un domaine délimité, une analyse grammaticale explicite fait mieux : elle 
 **instantanée** et **juste par construction**.
 
 ```bash
-python3 -m brain coder "Une application de gestion de tâches avec un titre, une priorité, \
-  une date d'échéance et une case terminé, avec recherche et export CSV" --sortie ./mon-app
+python3 -m brain coder "Une liste de tâches" --sortie ./mon-app
+
+# Ce que la phrase nomme s'ajoute a ce que le domaine impose :
+python3 -m brain coder "Un carnet de contacts avec un anniversaire" --expliquer
 
 cd mon-app && npm test        # les tests écrits par le générateur
 open index.html               # l'application, par simple double-clic
@@ -228,6 +236,52 @@ Le moteur vit dans [`web/moteur.js`](../web/moteur.js) : une seule implémentati
 qui tourne aussi bien ici sous Node que dans la page publique du dépôt — donc sans divergence
 possible entre les deux.
 
+### Le référentiel : il sait ce que contient une application de ce type
+
+Comprendre « une application de gestion de tâches **avec un titre, une priorité, une date
+d'échéance et une case terminé** » n'est pas très utile si l'utilisateur doit tout énumérer :
+autant remplir un formulaire. Ce qu'on veut, c'est que « **une liste de tâches** » suffise.
+
+[`intent/referentiel.py`](intent/referentiel.py) est ce savoir, écrit noir sur blanc : pour chacun
+des **67 domaines** reconnus, les champs que portent réellement les applications de ce type, la
+nature de chacun, les valeurs de leurs listes déroulantes, les fonctions qu'on y trouve toujours,
+et de quoi remplir l'application d'exemples crédibles dès l'ouverture.
+
+```
+$ python3 -m brain coder "Un carnet de contacts" --expliquer
+Compris : Carnet de contacts
+  entite    : Contact / Contacts
+  champs    :
+      - Nom : texte
+      - Prénom : texte
+      - Email : email
+      - Téléphone : telephone
+      - Société : texte
+      - Adresse : texte
+      - Notes : texte_long
+  deduit    : 7 champ(s) deduit(s) de ce que font les carnets d'adresses
+  fonctions : ajout, doublons, export, liste, persistance, recherche, suppression, tri
+  confiance : 100%
+```
+
+Trois règles, et elles comptent autant que les données :
+
+1. **Ce que la phrase nomme l'emporte toujours.** Le référentiel complète, il ne contredit pas.
+   Un champ cité et déjà prévu garde sa place dans l'ordre du formulaire, mais prend le libellé
+   et le type dits.
+2. **« juste », « seulement », « uniquement » le font taire**, champs et fonctions compris.
+3. **Ce qui a été déduit est annoncé.** Un générateur qui devine en silence est pire qu'un
+   générateur qui avoue — c'est la même règle que pour la ligne `ignoré`.
+
+Rien n'est consulté sur le réseau au moment de la génération : ces conventions sont observées puis
+figées, ce qui les rend déterministes, vérifiables, et utilisables hors ligne. Un site distant qui
+change ne peut pas casser vos applications.
+
+Le moteur de sites porte le même savoir pour **21 activités** — restaurant, commerce de bouche,
+santé, artisan, service de proximité, agence, soins animaliers… — chacune avec ses vraies
+prestations, ses chiffres et ses sections. « Un site pour ma boulangerie » n'a donc besoin
+d'aucune précision.
+
 ### La page publique produit aussi de vraies applications
 
 Le compilateur d'intentions existe en deux implémentations : celle de référence, en Python
@@ -245,8 +299,9 @@ Deux garde-fous empêchent les deux implémentations de diverger :
 - le vocabulaire n'est écrit qu'une fois, dans [`intent/lexique.py`](intent/lexique.py), et
   [`scripts/exporter_lexique.py`](../scripts/exporter_lexique.py) en dérive `web/lexique.js` — un
   test vérifie que le fichier publié est bien l'export courant ;
-- un test de **parité** compare, phrase par phrase, ce que comprennent les deux moteurs : mêmes
-  champs, mêmes libellés, mêmes types, mêmes options, mêmes fonctions, même entité.
+- un test de **parité** compare, sur les 67 domaines et sur une douzaine de phrases, ce que
+  comprennent les deux moteurs : mêmes champs, mêmes libellés, mêmes types, mêmes options, mêmes
+  fonctions, même entité.
 
 ```bash
 python3 -m unittest brain.tests.test_app_web
@@ -309,6 +364,7 @@ modèle — donc l'échelle décrite plus haut.
 | `serve.py` | API compatible OpenAI, bibliothèque standard uniquement. |
 | `config.py` | Tailles de modèles et estimation honnête de leur coût. |
 | `intent/lexique.py` | Le vocabulaire français reconnu : entités, types de champs, fonctions. |
+| `intent/referentiel.py` | Ce que contiennent réellement les applications de chaque domaine (67). |
 | `intent/analyse.py` | Analyse de la phrase vers une spécification, avec confiance et oublis déclarés. |
 | `intent/generation.py` | Émission du code : HTML, CSS, logique métier, affichage, tests. |
 | `agent/commandes.py` | Instruction française → opération nommée, ou refus argumenté. |
@@ -323,15 +379,16 @@ modèle — donc l'échelle décrite plus haut.
 python3 -m unittest discover -s brain/tests -t .
 ```
 
-126 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
+138 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
 absence de perte de caractères au découpage, **causalité** (aucune fuite d'information du futur),
 **équivalence entre génération avec et sans cache**, chute réelle de la perte à l'entraînement,
 débordement de contexte, chaîne complète de bout en bout, et contrat du serveur.
 
 Pour le compilateur d'intention, le test décisif ne se contente pas de lire le code produit :
 il **génère quatre applications, les exécute sous Node et fait passer leurs propres tests**.
-Le moteur du navigateur passe la même épreuve, sur cinq phrases, plus un test de parité avec le
-compilateur Python. L'atelier est testé de la même façon : une session complète est jouée, puis
+Le moteur du navigateur passe la même épreuve **sur les 67 domaines** : chacun est généré depuis
+une phrase nue, et chaque application produite fait passer sa propre suite de tests sous Node. Un
+test de parité compare, domaine par domaine, ce que comprennent les deux compilateurs. L'atelier est testé de la même façon : une session complète est jouée, puis
 les tests du projet produit doivent passer.
 
 ## Ce qui manque pour aller plus loin

@@ -16,6 +16,8 @@ RACINE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RACINE))
 
 from brain.intent import lexique as L  # noqa: E402
+from brain.intent import referentiel as R  # noqa: E402
+from brain.intent.analyse import MAX_CHAMPS  # noqa: E402
 
 
 def contenu() -> str:
@@ -27,6 +29,11 @@ def contenu() -> str:
         "amorcesEntite": L.AMORCES_ENTITE,
         "entitesConnues": {k: list(v) for k, v in L.ENTITES_CONNUES.items()},
         "motsVides": sorted(L.MOTS_VIDES),
+        # Ce que contiennent reellement les applications de chaque domaine :
+        # c'est ce qui evite d'avoir a dicter la liste des champs.
+        "modeles": R.MODELES,
+        "restrictifs": list(R.RESTRICTIFS),
+        "maxChamps": MAX_CHAMPS,
     }
     return (
         "/* Fichier genere par scripts/exporter_lexique.py — ne pas modifier a la main.\n"

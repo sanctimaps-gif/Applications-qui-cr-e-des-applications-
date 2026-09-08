@@ -38,6 +38,7 @@ _enregistre(
     "date",
     "date", "echeance", "deadline", "jour", "naissance", "debut", "fin",
     "date de debut", "date de fin", "date limite", "peremption", "publication",
+    "anniversaire", "expiration", "arrivee", "depart", "rendez-vous",
 )
 _enregistre(
     "nombre",
@@ -251,6 +252,53 @@ ENTITES_CONNUES: dict[str, tuple[str, str]] = {
     "devis": ("Devis", "Devis"),
     "paiements": ("Paiement", "Paiements"),
     "paiement": ("Paiement", "Paiements"),
+    "animaux": ("Animal", "Animaux"),
+    "animal": ("Animal", "Animaux"),
+    "biens": ("Bien", "Biens"),
+    "bien": ("Bien", "Biens"),
+    "locations": ("Bien", "Biens"),
+    "location": ("Bien", "Biens"),
+    "logements": ("Bien", "Biens"),
+    "logement": ("Bien", "Biens"),
+    "bugs": ("Bug", "Bugs"),
+    "bug": ("Bug", "Bugs"),
+    "anomalies": ("Bug", "Bugs"),
+    "anomalie": ("Bug", "Bugs"),
+    "cadeaux": ("Cadeau", "Cadeaux"),
+    "cadeau": ("Cadeau", "Cadeaux"),
+    "conges": ("Congé", "Congés"),
+    "conge": ("Congé", "Congés"),
+    "absences": ("Congé", "Congés"),
+    "absence": ("Congé", "Congés"),
+    "devoirs": ("Devoir", "Devoirs"),
+    "devoir": ("Devoir", "Devoirs"),
+    "dons": ("Don", "Dons"),
+    "don": ("Don", "Dons"),
+    "formations": ("Formation", "Formations"),
+    "formation": ("Formation", "Formations"),
+    "inscriptions": ("Inscription", "Inscriptions"),
+    "inscription": ("Inscription", "Inscriptions"),
+    "invites": ("Invité", "Invités"),
+    "invite": ("Invité", "Invités"),
+    "joueurs": ("Joueur", "Joueurs"),
+    "joueur": ("Joueur", "Joueurs"),
+    "licences": ("Licence", "Licences"),
+    "licence": ("Licence", "Licences"),
+    "matchs": ("Match", "Matchs"),
+    "match": ("Match", "Matchs"),
+    "rencontres": ("Match", "Matchs"),
+    "rencontre": ("Match", "Matchs"),
+    "objectifs": ("Objectif", "Objectifs"),
+    "objectif": ("Objectif", "Objectifs"),
+    "photos": ("Photo", "Photos"),
+    "photo": ("Photo", "Photos"),
+    "prets": ("Prêt", "Prêts"),
+    "pret": ("Prêt", "Prêts"),
+    "trajets": ("Trajet", "Trajets"),
+    "trajet": ("Trajet", "Trajets"),
+    "kilometres": ("Trajet", "Trajets"),
+    "ventes": ("Vente", "Ventes"),
+    "vente": ("Vente", "Ventes"),
 }
 
 #: Mots qui ne peuvent jamais designer une entite ni un champ.
@@ -264,6 +312,9 @@ MOTS_VIDES = {
     # Mots d'habillage : « une case terminé » designe le champ « terminé ».
     "case", "champ", "champs", "colonne", "colonnes", "rubrique", "zone",
     "possibilite de", "bouton",
+    # Mots par lesquels on restreint la demande : ils pilotent l'analyse, ils
+    # ne nomment jamais un champ (« avec juste un titre » -> « Titre »).
+    "juste", "seulement", "uniquement", "strictement", "minimaliste",
 }
 
 

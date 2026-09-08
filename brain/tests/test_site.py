@@ -135,5 +135,76 @@ class TestMoteurSite(unittest.TestCase):
         self.assertEqual(charge["manquantes"], [], "sections sans bloc de génération")
 
 
+@unittest.skipUnless(NODE, "Node.js absent")
+class TestCouvertureDesMetiers(unittest.TestCase):
+    """« Un site pour ma boulangerie » doit suffire : le moteur sait ce que
+    contient un site de boulangerie, personne n'a a le lui dicter."""
+
+    #: Des metiers reels, ecrits comme on les dit. Aucun ne doit retomber sur
+    #: le contenu generique.
+    METIERS = [
+        "boulangerie", "pâtisserie", "boucherie", "fromagerie", "chocolatier",
+        "caviste", "primeur", "glacier", "salon de thé", "food truck",
+        "restaurant", "pizzeria", "bar à vin", "traiteur", "brasserie",
+        "fleuriste", "librairie", "épicerie", "bijouterie", "friperie",
+        "pharmacie", "opticien", "infirmière", "dentiste", "kinésithérapeute",
+        "psychologue", "notaire", "comptable", "avocat", "géomètre",
+        "plombier", "électricien", "menuisier", "couvreur", "maçon", "carreleur",
+        "serrurier", "déménageur", "taxi", "pressing", "cordonnier", "informaticien",
+        "agence web", "agence de voyage", "architecte", "paysagiste", "décorateur",
+        "graphiste", "illustrateur", "musicien", "tatoueur", "traducteur",
+        "vétérinaire", "toiletteur", "pension animalière", "éducateur canin",
+        "hôtel", "camping", "gîte", "chambre d'hôtes", "auberge",
+        "auto-école", "crèche", "soutien scolaire", "école de danse", "conservatoire",
+        "salle de sport", "coach sportif", "yoga", "escalade", "judo", "piscine",
+        "institut de beauté", "spa", "onglerie", "sophrologue", "naturopathe",
+        "garage", "carrosserie", "réparation vélo", "contrôle technique",
+        "agence immobilière", "syndic", "diagnostiqueur",
+        "association", "coopérative", "MJC", "théâtre", "festival", "wedding planner",
+        "photographe", "coiffeur", "barbier",
+    ]
+
+    def test_aucun_metier_courant_ne_tombe_dans_le_generique(self) -> None:
+        generiques = []
+        for metier in self.METIERS:
+            spec, _ = construire(f"Un site pour mon {metier}")
+            if spec["metierNom"] == "Activité":
+                generiques.append(metier)
+        self.assertEqual(generiques, [], "métiers sans contenu propre")
+
+    def test_le_plus_precis_l_emporte(self) -> None:
+        """« salon de thé » ne doit pas se faire prendre par « salon », qui
+        n'en est que le début."""
+        cas = {
+            "salon de thé": "Commerce de bouche",
+            "salon de coiffure": "Salon de coiffure",
+            "salon professionnel": "Événement",
+        }
+        for phrase, attendu in cas.items():
+            spec, _ = construire(f"Un site pour mon {phrase}")
+            self.assertEqual(spec["metierNom"], attendu, phrase)
+
+    def test_l_apostrophe_ne_bloque_pas(self) -> None:
+        spec, _ = construire("Un site pour ma chambre d'hôtes")
+        self.assertEqual(spec["metierNom"], "Hébergement")
+
+    def test_chaque_metier_a_du_contenu_reel(self) -> None:
+        """Un métier déclaré sans prestations ni chiffres produirait une page
+        creuse : c'est exactement ce qu'on veut éviter."""
+        programme = (
+            f"const M = require({json.dumps(str(MOTEUR))});"
+            "const creux = Object.entries(M.METIERS).filter(([cle, m]) =>"
+            "  !m.nom || !m.accroche || (m.services || []).length < 3 ||"
+            "  (m.chiffres || []).length < 3 || (m.sections || []).length < 4"
+            ").map(([cle]) => cle);"
+            "process.stdout.write(JSON.stringify({creux, total: Object.keys(M.METIERS).length}));"
+        )
+        resultat = subprocess.run(["node", "-e", programme], capture_output=True, text=True, timeout=60)
+        self.assertEqual(resultat.returncode, 0, resultat.stderr)
+        charge = json.loads(resultat.stdout)
+        self.assertEqual(charge["creux"], [], "métiers au contenu insuffisant")
+        self.assertGreaterEqual(charge["total"], 20)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

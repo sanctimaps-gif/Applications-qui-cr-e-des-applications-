@@ -44,7 +44,8 @@
   // ======================================================================= //
   const METIERS = {
     restaurant: {
-      mots: ['restaurant', 'bistrot', 'brasserie', 'pizzeria', 'traiteur', 'creperie', 'table'],
+      mots: ['restaurant', 'bistrot', 'brasserie', 'pizzeria', 'traiteur', 'creperie', 'table',
+        'bar a vin', 'bar', 'cave a manger', 'restaurateur', 'cantine', 'burger'],
       nom: 'Restaurant',
       accroche: 'Une cuisine de saison, préparée chaque matin avec des produits du marché.',
       sections: ['apropos', 'services', 'galerie', 'horaires', 'temoignages', 'contact'],
@@ -59,7 +60,7 @@
       galerie: ['La salle', 'Le plat du jour', 'Le comptoir', 'Le dessert'],
     },
     coiffure: {
-      mots: ['coiffeur', 'coiffure', 'salon de coiffure', 'barbier', 'barbershop'],
+      mots: ['coiffeur', 'coiffure', 'salon de coiffure', 'barbier', 'barbershop', 'visagiste'],
       nom: 'Salon de coiffure',
       accroche: 'Coupes, couleurs et soins, dans un salon calme et lumineux.',
       sections: ['apropos', 'services', 'galerie', 'horaires', 'temoignages', 'contact'],
@@ -74,7 +75,7 @@
       galerie: ['Le salon', 'Un balayage', 'Une coupe courte', 'Le coin soins'],
     },
     photographe: {
-      mots: ['photographe', 'photographie', 'studio photo', 'photo'],
+      mots: ['photographe', 'photographie', 'studio photo', 'photo', 'videaste', 'photographe de mariage'],
       nom: 'Photographe',
       accroche: 'Portraits, mariages et reportages — des images qui vous ressemblent.',
       sections: ['apropos', 'services', 'galerie', 'tarifs', 'temoignages', 'contact'],
@@ -88,7 +89,9 @@
       galerie: ['Portrait en lumière naturelle', 'Cérémonie', 'Détail', 'Paysage'],
     },
     artisan: {
-      mots: ['artisan', 'menuisier', 'plombier', 'electricien', 'macon', 'peintre', 'couvreur', 'charpentier'],
+      mots: ['artisan', 'menuisier', 'plombier', 'electricien', 'macon', 'peintre', 'couvreur',
+        'charpentier', 'carreleur', 'platrier', 'ebeniste', 'ferronnier', 'terrassier',
+        'renovation', 'batiment', 'jardinier', 'elagueur'],
       nom: 'Artisan',
       accroche: 'Un travail soigné, un devis clair, des délais tenus.',
       sections: ['apropos', 'services', 'galerie', 'temoignages', 'faq', 'contact'],
@@ -102,7 +105,9 @@
       galerie: ['Un chantier terminé', 'L’atelier', 'Avant / après', 'Les finitions'],
     },
     boutique: {
-      mots: ['boutique', 'magasin', 'commerce', 'epicerie', 'librairie', 'fleuriste', 'boulangerie', 'concept store'],
+      mots: ['boutique', 'magasin', 'commerce', 'epicerie', 'librairie', 'fleuriste', 'concept store',
+        'brocante', 'friperie', 'papeterie', 'quincaillerie', 'bijouterie', 'maroquinerie',
+        'jardinerie', 'magasin de sport', 'magasin de jouets'],
       nom: 'Boutique',
       accroche: 'Une sélection choisie avec soin, à retrouver en boutique.',
       sections: ['apropos', 'services', 'galerie', 'horaires', 'temoignages', 'contact'],
@@ -116,7 +121,9 @@
       galerie: ['La vitrine', 'Les rayons', 'Un produit', 'L’équipe'],
     },
     cabinet: {
-      mots: ['cabinet', 'avocat', 'notaire', 'medecin', 'dentiste', 'kine', 'osteopathe', 'psychologue', 'comptable'],
+      mots: ['cabinet', 'avocat', 'notaire', 'medecin', 'dentiste', 'kine', 'kinesitherapeute',
+        'osteopathe', 'psychologue', 'comptable', 'huissier', 'expert comptable', 'geometre',
+        'psychiatre', 'therapeute', 'orthodontiste', 'chirurgien'],
       nom: 'Cabinet',
       accroche: 'Un accompagnement attentif, une réponse claire à chaque question.',
       sections: ['apropos', 'services', 'equipe', 'horaires', 'faq', 'contact'],
@@ -130,7 +137,8 @@
       galerie: [],
     },
     association: {
-      mots: ['association', 'club', 'collectif', 'ong', 'amicale', 'federation'],
+      mots: ['association', 'club', 'collectif', 'ong', 'amicale', 'federation', 'comite',
+        'syndicat', 'cooperative', 'mjc', 'centre social'],
       nom: 'Association',
       accroche: 'Une équipe de bénévoles, des actions concrètes, près de chez vous.',
       sections: ['apropos', 'services', 'equipe', 'actualites', 'temoignages', 'contact'],
@@ -144,7 +152,8 @@
       galerie: ['Un atelier', 'La dernière sortie', 'L’équipe', 'Le local'],
     },
     hebergement: {
-      mots: ['hotel', 'gite', 'chambre d hotes', 'camping', 'auberge', 'location saisonniere'],
+      mots: ['hotel', 'gite', 'chambre d hotes', 'camping', 'auberge', 'location saisonniere',
+        'maison d hotes', 'refuge', 'residence', 'airbnb', 'hebergement'],
       nom: 'Hébergement',
       accroche: 'Un lieu calme pour poser ses valises, à deux pas de l’essentiel.',
       sections: ['apropos', 'services', 'galerie', 'tarifs', 'temoignages', 'faq', 'contact'],
@@ -158,7 +167,9 @@
       galerie: ['La chambre', 'Le petit-déjeuner', 'Le jardin', 'Les environs'],
     },
     ecole: {
-      mots: ['ecole', 'formation', 'cours', 'professeur', 'auto ecole', 'creche', 'centre de formation'],
+      mots: ['ecole', 'formation', 'cours', 'professeur', 'auto ecole', 'creche', 'centre de formation',
+        'college', 'lycee', 'soutien scolaire', 'cours particuliers', 'conservatoire',
+        'ecole de musique', 'ecole de danse', 'assistante maternelle', 'periscolaire'],
       nom: 'École',
       accroche: 'Apprendre à son rythme, avec des enseignants disponibles.',
       sections: ['apropos', 'services', 'tarifs', 'equipe', 'faq', 'contact'],
@@ -172,7 +183,9 @@
       galerie: [],
     },
     portfolio: {
-      mots: ['portfolio', 'book', 'cv', 'developpeur', 'designer', 'graphiste', 'illustrateur', 'freelance', 'consultant'],
+      mots: ['portfolio', 'book', 'cv', 'developpeur', 'designer', 'graphiste', 'illustrateur',
+        'freelance', 'consultant', 'redacteur', 'traducteur', 'artiste', 'peintre en art',
+        'sculpteur', 'musicien', 'ceramiste', 'tatoueur', 'auteur', 'ecrivain'],
       nom: 'Portfolio',
       accroche: 'Quelques projets récents, et la façon dont je travaille.',
       sections: ['apropos', 'services', 'galerie', 'temoignages', 'contact'],
@@ -186,7 +199,8 @@
       galerie: ['Projet récent', 'Étude de cas', 'Détail d’interface', 'Croquis'],
     },
     garage: {
-      mots: ['garage', 'mecanicien', 'carrosserie', 'concession', 'reparation automobile'],
+      mots: ['garage', 'mecanicien', 'carrosserie', 'concession', 'reparation automobile',
+        'pneus', 'controle technique', 'reparation velo', 'velociste', 'moto'],
       nom: 'Garage',
       accroche: 'Entretien, réparation et contrôle : votre véhicule entre de bonnes mains.',
       sections: ['apropos', 'services', 'tarifs', 'horaires', 'temoignages', 'contact'],
@@ -200,7 +214,8 @@
       galerie: ['L’atelier', 'Le banc de diagnostic', 'La cabine peinture', 'L’accueil'],
     },
     evenement: {
-      mots: ['evenement', 'mariage', 'festival', 'conference', 'salon', 'seminaire', 'concert', 'spectacle'],
+      mots: ['evenement', 'mariage', 'festival', 'conference', 'salon', 'seminaire', 'concert',
+        'spectacle', 'theatre', 'exposition', 'wedding planner', 'organisateur', 'brocante annuelle'],
       nom: 'Événement',
       accroche: 'Le programme, le lieu, et tout ce qu’il faut savoir avant de venir.',
       sections: ['apropos', 'programme', 'services', 'tarifs', 'faq', 'contact'],
@@ -214,7 +229,8 @@
       galerie: ['L’édition précédente', 'La salle', 'Le public', 'Les coulisses'],
     },
     immobilier: {
-      mots: ['immobilier', 'agence immobiliere', 'agent immobilier', 'syndic'],
+      mots: ['immobilier', 'agence immobiliere', 'agent immobilier', 'syndic', 'promoteur',
+        'diagnostiqueur', 'gestion locative', 'marchand de biens'],
       nom: 'Agence immobilière',
       accroche: 'Acheter, vendre ou louer, accompagné à chaque étape.',
       sections: ['apropos', 'services', 'galerie', 'temoignages', 'faq', 'contact'],
@@ -228,7 +244,8 @@
       galerie: ['Un bien en vente', 'Un séjour', 'Une cuisine', 'Le quartier'],
     },
     bienetre: {
-      mots: ['institut', 'spa', 'massage', 'yoga', 'esthetique', 'bien etre', 'naturopathe', 'sophrologue'],
+      mots: ['institut', 'spa', 'massage', 'yoga', 'esthetique', 'bien etre', 'naturopathe',
+        'sophrologue', 'onglerie', 'hammam', 'sauna', 'reflexologue', 'meditation', 'pilates'],
       nom: 'Institut',
       accroche: 'Une parenthèse pour souffler, dans un lieu apaisant.',
       sections: ['apropos', 'services', 'galerie', 'tarifs', 'horaires', 'temoignages', 'contact'],
@@ -242,7 +259,9 @@
       galerie: ['La cabine', 'L’accueil', 'Les produits', 'L’espace détente'],
     },
     sport: {
-      mots: ['salle de sport', 'club de sport', 'coach', 'fitness', 'crossfit', 'danse', 'piscine', 'tennis'],
+      mots: ['salle de sport', 'club de sport', 'coach', 'coach sportif', 'fitness', 'crossfit',
+        'danse', 'piscine', 'tennis', 'football', 'rugby', 'judo', 'escalade', 'boxe',
+        'equitation', 'golf', 'basket'],
       nom: 'Club',
       accroche: 'Des séances encadrées, quel que soit votre niveau de départ.',
       sections: ['apropos', 'services', 'tarifs', 'horaires', 'equipe', 'temoignages', 'contact'],
@@ -254,6 +273,101 @@
       ],
       chiffres: [['adhérents', '480'], ['cours par semaine', '35'], ['coachs diplômés', '6']],
       galerie: ['La salle', 'Un cours collectif', 'Le matériel', 'Les vestiaires'],
+    },
+    alimentation: {
+      mots: [
+        'boulangerie', 'boulanger', 'patisserie', 'patissier', 'boucherie', 'boucher',
+        'charcuterie', 'poissonnerie', 'fromagerie', 'cremerie', 'chocolaterie', 'chocolatier',
+        'glacier', 'caviste', 'primeur', 'torrefacteur', 'salon de the', 'food truck',
+        'commerce de bouche', 'epicerie fine',
+      ],
+      nom: 'Commerce de bouche',
+      accroche: 'Fabrication maison, chaque matin, avec des matières premières choisies.',
+      sections: ['apropos', 'services', 'galerie', 'horaires', 'temoignages', 'contact'],
+      titreServices: 'Nos produits',
+      services: [
+        ['Les classiques', 'Fabriqués sur place, tous les jours, en quantité juste.', ''],
+        ['La saison', 'Ce que la saison permet, et rien d’autre.', ''],
+        ['Sur commande', 'Grandes pièces et commandes spéciales, 48 h à l’avance.', ''],
+        ['Cartes cadeaux', 'À offrir, valables un an dans la boutique.', 'dès 20 €'],
+      ],
+      chiffres: [['fournées par jour', '3'], ['producteurs locaux', '12'], ['depuis', '2004']],
+      galerie: ['La vitrine', 'Le fournil', 'Un produit', 'L’équipe'],
+    },
+    sante: {
+      mots: [
+        'pharmacie', 'pharmacien', 'opticien', 'optique', 'audioprothesiste', 'orthophoniste',
+        'infirmier', 'infirmiere', 'sage femme', 'podologue', 'dieteticien', 'nutritionniste',
+        'laboratoire', 'centre de sante', 'maison de sante',
+      ],
+      nom: 'Santé',
+      accroche: 'Un accompagnement attentif, sans rendez-vous pour les urgences.',
+      sections: ['apropos', 'services', 'equipe', 'horaires', 'faq', 'contact'],
+      titreServices: 'Nos services',
+      services: [
+        ['Consultation', 'Un temps d’écoute, un examen, des explications claires.', ''],
+        ['Conseil', 'Nous prenons le temps de répondre à vos questions.', ''],
+        ['Suivi', 'Rappels, renouvellements et coordination avec vos praticiens.', ''],
+        ['Urgences', 'Accueil sans rendez-vous aux heures d’ouverture.', ''],
+      ],
+      chiffres: [['patients par an', '4 000'], ['praticiens', '5'], ['depuis', '1996']],
+      galerie: ['L’accueil', 'La salle d’attente', 'Un cabinet', 'L’équipe'],
+    },
+    depannage: {
+      mots: [
+        'serrurier', 'serrurerie', 'depannage', 'depanneur', 'chauffagiste', 'vitrier',
+        'demenageur', 'demenagement', 'taxi', 'vtc', 'ambulance', 'nettoyage', 'pressing',
+        'blanchisserie', 'informaticien', 'depannage informatique', 'cordonnier', 'cordonnerie',
+      ],
+      nom: 'Service de proximité',
+      accroche: 'Intervention rapide, devis clair avant travaux, travail garanti.',
+      sections: ['apropos', 'services', 'tarifs', 'temoignages', 'faq', 'contact'],
+      titreServices: 'Nos interventions',
+      services: [
+        ['Urgence', 'Intervention le jour même, 7 j/7, dans un rayon de 30 km.', 'dès 90 €'],
+        ['Sur rendez-vous', 'Créneau fixé ensemble, à l’heure convenue.', 'dès 55 €'],
+        ['Devis', 'Gratuit, détaillé, valable 30 jours. Aucun travail sans accord.', 'offert'],
+        ['Garantie', 'Pièces et main-d’œuvre garanties un an.', 'incluse'],
+      ],
+      chiffres: [['interventions par an', '1 200'], ['délai moyen', '2 h'], ['garantie', '1 an']],
+      galerie: ['Le véhicule', 'Une intervention', 'Le matériel', 'L’équipe'],
+    },
+    agence: {
+      mots: [
+        'agence', 'agence web', 'agence de communication', 'agence de voyage', 'studio',
+        'architecte', 'architecture', 'bureau d etudes', 'cabinet de conseil', 'paysagiste',
+        'decorateur', 'architecte d interieur', 'agence de publicite',
+      ],
+      nom: 'Agence',
+      accroche: 'Des projets menés de bout en bout, avec une équipe qui reste jointe.',
+      sections: ['apropos', 'services', 'galerie', 'equipe', 'temoignages', 'contact'],
+      titreServices: 'Nos prestations',
+      services: [
+        ['Cadrage', 'On écoute, on cadre, on chiffre. Sans jargon.', ''],
+        ['Conception', 'Des propositions concrètes, discutées avec vous.', ''],
+        ['Réalisation', 'Points d’étape réguliers, livraison au jour dit.', ''],
+        ['Accompagnement', 'Formation et suivi après la mise en service.', ''],
+      ],
+      chiffres: [['projets livrés', '140'], ['ans d’expérience', '12'], ['clients fidèles', '80 %']],
+      galerie: ['Un projet', 'L’atelier', 'L’équipe', 'Un détail'],
+    },
+    animaux: {
+      mots: [
+        'veterinaire', 'clinique veterinaire', 'toiletteur', 'toilettage', 'pension animaliere',
+        'eleveur', 'elevage', 'animalerie', 'educateur canin', 'garde d animaux',
+      ],
+      nom: 'Soins animaliers',
+      accroche: 'Des soins attentifs, et le temps qu’il faut pour rassurer l’animal.',
+      sections: ['apropos', 'services', 'tarifs', 'horaires', 'temoignages', 'contact'],
+      titreServices: 'Nos prestations',
+      services: [
+        ['Consultation', 'Examen complet, vaccins, conseils d’alimentation.', 'dès 45 €'],
+        ['Soins', 'Suivi des traitements, pansements, contrôles.', ''],
+        ['Toilettage', 'Bain, tonte, soin des griffes, selon la race.', 'dès 35 €'],
+        ['Urgences', 'Accueil sans rendez-vous aux heures d’ouverture.', ''],
+      ],
+      chiffres: [['animaux suivis', '2 500'], ['praticiens', '3'], ['depuis', '2009']],
+      galerie: ['L’accueil', 'La salle de soins', 'Un pensionnaire', 'L’équipe'],
     },
     generique: {
       mots: [],
@@ -308,15 +422,26 @@
   // ======================================================================= //
   // Analyse : de la phrase vers une spécification de site
   // ======================================================================= //
+  /** « chambre d'hôtes » et « chambre d hotes » doivent se rencontrer. */
+  const platMetier = (t) => normalise(t).replace(/['’]/g, ' ').replace(/\s+/g, ' ');
+
   function trouveMetier(plat) {
+    const cible = platMetier(plat);
     let meilleur = null;
     let position = Infinity;
+    let longueur = 0;
+
     for (const [cle, metier] of Object.entries(METIERS)) {
       for (const mot of metier.mots) {
-        const trouve = plat.indexOf(normalise(mot));
-        if (trouve !== -1 && trouve < position) {
+        const aiguille = platMetier(mot);
+        const trouve = cible.indexOf(aiguille);
+        if (trouve === -1) continue;
+        // Le plus tôt gagne ; à égalité, le plus précis. Sans quoi « salon de
+        // thé » se ferait prendre par « salon », qui n'en est que le début.
+        if (trouve < position || (trouve === position && aiguille.length > longueur)) {
           meilleur = cle;
           position = trouve;
+          longueur = aiguille.length;
         }
       }
     }

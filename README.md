@@ -2,17 +2,29 @@
 
 ### ▶ [Créer un site ou une application en une phrase](https://sanctimaps-gif.github.io/Applications-qui-cr-e-des-applications-/)
 
-Décrivez ce que vous voulez, et il s'écrit sous vos yeux.
+Une phrase suffit. **Vous n'avez rien à énumérer** : ce qu'il y a dans un site de boulangerie ou
+dans un carnet de contacts est déjà su.
 
-**Un site** — « un site chaleureux pour mon restaurant Le Tilleul à Annecy, avec la carte, les
-horaires et un formulaire de contact » : navigation, sections, galerie, tarifs, FAQ, formulaire
-validé, thème clair et sombre.
+```
+Un site pour ma boulangerie          →  à propos, produits, galerie, horaires, avis, contact,
+                                        avec de vrais textes de boulangerie
 
-**Une vraie application** — « une application de gestion de tâches avec un titre, une priorité, une
-date d'échéance et une case terminé, avec recherche et export CSV » : ce n'est pas une maquette.
-La logique métier vit dans `store.js`, séparée de l'affichage — validation des saisies, persistance,
-création, modification, suppression, recherche, filtre, tri, statistiques, export CSV — et le projet
-livré contient **ses propres tests**, que vous lancez avec `npm test`.
+Un carnet de contacts                →  Nom · Prénom · Email · Téléphone · Société · Adresse ·
+                                        Notes, plus recherche, tri, export et anti-doublons
+```
+
+**Un site** — 21 activités reconnues, chacune avec ses vraies prestations, ses chiffres et ses
+sections : navigation, galerie, tarifs, FAQ, formulaire validé, thème clair et sombre.
+
+**Une vraie application** — 67 domaines connus, et ce n'est pas une maquette. La logique métier vit
+dans `store.js`, séparée de l'affichage — validation des saisies, persistance, création,
+modification, suppression, recherche, filtre, tri, statistiques, export CSV — et le projet livré
+contient **ses propres tests**, que vous lancez avec `npm test`. Il s'ouvre déjà rempli de fiches
+crédibles, pas de « Titre 1 ».
+
+Ce que vous nommez l'emporte toujours ; le référentiel ne fait que compléter, et « juste »,
+« seulement » ou « uniquement » le désactivent. Ce qui a été déduit vous est dit — jamais deviné en
+silence.
 
 Dans les deux cas vous le voyez tourner dans l'aperçu, vous le téléchargez en `.zip`, et il marche
 d'un double-clic sur `index.html`.
@@ -98,8 +110,10 @@ node dist/cli.js doctor      # ● custom  API joignable
 le compilateur d'intention le fait sans entraînement, en 30 ms, et correctement à tous les coups.
 
 ```bash
-python3 -m brain coder "Une liste de tâches avec un titre, une priorité et une échéance, avec recherche"
+python3 -m brain coder "Un carnet de contacts"
 ```
+
+Il connaît **67 domaines** : la phrase nue suffit, les champs viennent du référentiel.
 
 Et si vous voulez **un agent de codage à la Claude Code, sans aucune IA** — qui comprend,
 modifie, teste, annule et rend compte — c'est l'atelier :
@@ -132,17 +146,34 @@ quatre fichiers sans dépendance, qui fonctionnent aussi hors ligne une fois té
 sélecteur **Auto / Site / Application** laisse la page décider d'après votre phrase, ou vous laisse
 trancher.
 
-`web/lexique.js` est engendré depuis [`brain/intent/lexique.py`](brain/intent/lexique.py) par
-[`scripts/exporter_lexique.py`](scripts/exporter_lexique.py) : le vocabulaire est défini **une seule
-fois**, et un test vérifie que le fichier publié correspond à l'export courant. Un autre test compare
-l'analyse JavaScript à l'analyse Python phrase par phrase — mêmes champs, mêmes types, mêmes
-fonctions.
+### Le référentiel : ce qui évite d'avoir à tout dicter
+
+Personne n'a envie d'écrire « un carnet de contacts avec un nom, un prénom, un email, un téléphone,
+une société et des notes ». Un humain qui a déjà vu un carnet d'adresses sait ce qu'il y a dedans ;
+[`brain/intent/referentiel.py`](brain/intent/referentiel.py) le sait aussi — **67 domaines**, leurs
+champs, le type de chacun, les valeurs de leurs listes déroulantes, les fonctions qu'on y trouve
+toujours, et de quoi remplir l'application d'exemples crédibles dès la première ouverture. Côté
+sites, [`web/moteur.js`](web/moteur.js) porte les mêmes conventions pour **21 activités**, avec
+leurs vraies prestations et leurs vrais chiffres.
+
+Deux précisions honnêtes : rien n'est consulté sur le réseau au moment de la génération — ces
+conventions sont observées puis figées, ce qui les rend déterministes, vérifiables et utilisables
+hors ligne ; et le référentiel **complète sans jamais contredire** — un champ que vous nommez
+l'emporte, et une phrase restrictive le fait taire entièrement.
+
+`web/lexique.js` est engendré depuis [`brain/intent/lexique.py`](brain/intent/lexique.py) et
+`referentiel.py` par [`scripts/exporter_lexique.py`](scripts/exporter_lexique.py) : le vocabulaire
+est défini **une seule fois**, et un test vérifie que le fichier publié correspond à l'export
+courant. Un autre test compare l'analyse JavaScript à l'analyse Python **sur les 67 domaines** —
+mêmes champs, mêmes types, mêmes options, mêmes fonctions — et un troisième génère les 67
+applications puis fait passer les tests de chacune sous Node.
 
 En ligne de commande, les mêmes moteurs :
 
 ```bash
-python3 -m brain site "Un site pour ma boulangerie Le Fournil à Lyon, avec les produits et les horaires" --sortie ./mon-site
-python3 -m brain coder "Une application de gestion de tâches avec un titre, une priorité et une date d'échéance" --sortie ./mes-taches
+python3 -m brain site  "Un site pour ma boulangerie Le Fournil à Lyon" --sortie ./mon-site
+python3 -m brain coder "Un carnet de contacts" --sortie ./mes-contacts
+python3 -m brain coder "Un suivi de dépenses" --expliquer     # ce qui a été compris, sans rien écrire
 ```
 
 ## Installation

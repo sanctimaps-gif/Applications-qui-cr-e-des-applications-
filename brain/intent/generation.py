@@ -52,6 +52,11 @@ def _valeur_vide(champ: Champ) -> str:
 
 def _exemple(champ: Champ, indice: int) -> str:
     """Une valeur d'exemple credible, pour que l'app s'ouvre remplie."""
+    # Le referentiel connait le domaine : « Acheter du pain » vaut mieux que
+    # « Titre 1 ». On ne s'en sert que pour ce qui se remplit librement — les
+    # dates, les choix et les nombres ont deja des valeurs sensees plus bas.
+    if champ.exemples and champ.type in ("texte", "texte_long"):
+        return f"'{_echappe_js(champ.exemples[indice % len(champ.exemples)])}'"
     if champ.type == "booleen":
         return "true" if indice == 1 else "false"
     if champ.type == "nombre":

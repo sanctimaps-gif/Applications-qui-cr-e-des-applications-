@@ -74,10 +74,20 @@ class TestComprehension(unittest.TestCase):
         self.assertIn("filtre", intention.fonctions)
         self.assertIn("cochage", intention.fonctions)
 
-    def test_sans_champ_un_socle_est_pose(self) -> None:
+    def test_domaine_connu_sans_champ_nomme(self) -> None:
+        """« gestion de projets » suffit : le referentiel sait ce qu'il y a
+        dans un outil de gestion de projet, personne n'a a le dicter."""
         intention = analyser("Une application de gestion de projets")
+        cles = [c.cle for c in intention.champs]
+        self.assertIn("nom", cles)
+        self.assertIn("echeance", cles)
+        self.assertIn("avancement", cles)
+        self.assertFalse(intention.ignore, "rien ne devrait etre ignore")
+
+    def test_domaine_inconnu_sans_champ_un_socle_est_pose(self) -> None:
+        intention = analyser("Une application de gestion de zorglubs")
         self.assertGreaterEqual(len(intention.champs), 3)
-        self.assertTrue(any("aucun champ nommé" in i or "aucun champ nomme" in i for i in intention.ignore))
+        self.assertTrue(any("socle" in i for i in intention.ignore))
         self.assertLess(intention.confiance, 1.0, "la confiance doit refleter l'incertitude")
 
     def test_la_confiance_est_honnete(self) -> None:

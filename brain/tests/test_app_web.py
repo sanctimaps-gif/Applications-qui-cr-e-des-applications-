@@ -20,7 +20,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from brain.intent import analyse
+from brain.intent import analyse, lexique, referentiel
 from brain.intent.app_web import MOTEUR, construire, ecrire, resume
 
 RACINE = Path(__file__).resolve().parents[2]
@@ -35,7 +35,25 @@ PHRASES = [
     "et une description",
     "Un suivi de dépenses avec un libellé, un montant, une date et une catégorie",
     "Une liste de livres avec titre, auteur, nombre de pages et une case lu",
+    # Sans aucun champ nomme : c'est le referentiel qui repond.
+    "Un carnet de contacts",
+    "Une application de gestion de factures",
+    "Un suivi de dépenses",
+    "Une liste de courses",
+    "Une application de gestion de projets",
+    # Champs nommes en plus de ce que le domaine prevoit deja.
+    "Un carnet de contacts avec un anniversaire",
+    # Phrase restrictive : le referentiel doit se taire.
+    "Une liste de tâches avec juste un titre et une priorité",
 ]
+
+
+def _mot_pour(cle: str) -> str | None:
+    """Un mot du lexique dont le pluriel correspond a ce domaine."""
+    for mot, (sing, plur) in lexique.ENTITES_CONNUES.items():
+        if lexique.normalise(plur) == cle:
+            return mot
+    return None
 
 
 @unittest.skipUnless(NODE, "Node.js absent")
@@ -168,6 +186,91 @@ class TestParitePythonJavaScript(unittest.TestCase):
         options_js = {c["cle"]: c.get("options", []) for c in js["champs"]}
         options_py = {c.cle: c.options for c in py.champs}
         self.assertEqual(options_js, options_py)
+
+
+class TestReferentiel(unittest.TestCase):
+    """« Un carnet de contacts » doit suffire : personne ne veut dicter la
+    liste des champs, et une application qui existe déjà sait ce qu'elle
+    contient."""
+
+    def test_chaque_domaine_est_atteignable(self) -> None:
+        """Un modèle qu'aucun mot ne désigne ne servirait jamais."""
+        orphelins = [cle for cle in referentiel.domaines() if _mot_pour(cle) is None]
+        self.assertEqual(orphelins, [], "modèles sans mot du lexique")
+
+    def test_chaque_domaine_donne_une_application_sensee(self) -> None:
+        for cle in referentiel.domaines():
+            mot = _mot_pour(cle)
+            intention = analyse.analyser(f"Une application de gestion de {mot}")
+            with self.subTest(domaine=cle):
+                self.assertGreaterEqual(len(intention.champs), 4, "trop pauvre")
+                self.assertLessEqual(len(intention.champs), analyse.MAX_CHAMPS)
+                self.assertFalse(intention.ignore, "rien ne devrait être ignoré")
+                self.assertAlmostEqual(intention.confiance, 1.0)
+                # Un champ de tête lisible, sinon les fiches n'ont pas de titre.
+                self.assertIn(intention.champ_principal.type, ("texte", "email", "url"))
+                # Des clés uniques, sinon deux champs s'écrasent dans le magasin.
+                cles = [c.cle for c in intention.champs]
+                self.assertEqual(len(cles), len(set(cles)))
+                # Des options partout où le type l'exige.
+                for champ in intention.champs:
+                    if champ.type == "choix":
+                        self.assertTrue(champ.options, champ.libelle)
+
+    def test_le_domaine_ne_contredit_jamais_la_phrase(self) -> None:
+        intention = analyse.analyser("Un carnet de contacts avec un anniversaire")
+        libelles = [c.libelle for c in intention.champs]
+        self.assertIn("Anniversaire", libelles)
+        self.assertIn("Email", libelles, "le modèle complète toujours")
+        anniversaire = next(c for c in intention.champs if c.cle == "anniversaire")
+        self.assertEqual(anniversaire.type, "date")
+
+    def test_une_phrase_restrictive_fait_taire_le_referentiel(self) -> None:
+        for mot in ("juste", "seulement", "uniquement"):
+            intention = analyse.analyser(f"Une liste de tâches avec {mot} un titre")
+            with self.subTest(mot=mot):
+                self.assertEqual([c.libelle for c in intention.champs], ["Titre"])
+
+    def test_les_exemples_viennent_du_domaine(self) -> None:
+        """L'application s'ouvre remplie de valeurs credibles, pas de
+        « Titre 1 » : c'est la difference entre une demo et un outil."""
+        _, fichiers = construire("Un carnet de contacts")
+        self.assertIn("Bernard", fichiers["store.js"])
+        self.assertNotIn("Nom 1", fichiers["store.js"])
+
+    def test_chaque_domaine_produit_une_application_qui_passe_ses_tests(self) -> None:
+        """Le test qui compte vraiment : les 67 domaines sont générés depuis
+        une phrase nue, et chaque application produite fait passer sa propre
+        suite de tests sous Node."""
+        if not NODE:
+            self.skipTest("Node.js absent")
+        for cle in referentiel.domaines():
+            phrase = f"Une application de gestion de {_mot_pour(cle)}"
+            with self.subTest(domaine=cle), tempfile.TemporaryDirectory() as dossier:
+                ecrire(phrase, dossier)
+                verdict = subprocess.run(
+                    ["node", "--test", "test/store.test.js"],
+                    cwd=dossier,
+                    capture_output=True,
+                    text=True,
+                    timeout=180,
+                )
+                self.assertEqual(verdict.returncode, 0, phrase + "\n" + verdict.stdout)
+
+    def test_parite_sur_tous_les_domaines(self) -> None:
+        """Les 67 domaines, comparés un par un entre Python et JavaScript."""
+        if not NODE:
+            self.skipTest("Node.js absent")
+        for cle in referentiel.domaines():
+            phrase = f"Une application de gestion de {_mot_pour(cle)}"
+            js, _ = construire(phrase)
+            py = analyse.analyser(phrase)
+            with self.subTest(domaine=cle):
+                self.assertEqual(
+                    [(c["cle"], c["type"], tuple(c["options"])) for c in js["champs"]],
+                    [(c.cle, c.type, tuple(c.options)) for c in py.champs],
+                )
+                self.assertEqual(sorted(js["fonctions"]), sorted(py.fonctions))
 
 
 class TestLexiquePartage(unittest.TestCase):

@@ -181,6 +181,83 @@
   }
 
   /** Analyse une demande d'application et renvoie sa spécification. */
+  // ===================================================================== //
+  // Le référentiel : ce que contiennent réellement les applications de ce
+  // type. C'est lui qui dispense de dicter les champs — « un carnet de
+  // contacts » suffit, on sait ce qu'il y a dans un carnet d'adresses.
+  // ===================================================================== //
+  function modelePour() {
+    for (var i = 0; i < arguments.length; i++) {
+      var modele = LEXIQUE.modeles[normalise(arguments[i])];
+      if (modele) return modele;
+    }
+    return null;
+  }
+
+  /** La phrase demande-t-elle de s'en tenir strictement à ce qui est dit ? */
+  function restreint(plat) {
+    return LEXIQUE.restrictifs.some(function (mot) { return plat.indexOf(mot) !== -1; });
+  }
+
+  function champDuModele(donnees) {
+    return {
+      cle: identifiant(donnees.libelle),
+      libelle: donnees.libelle,
+      type: donnees.type,
+      options: (donnees.options || []).slice(),
+      exemples: (donnees.exemples || []).slice(),
+      requis: false,
+    };
+  }
+
+  /**
+   * Combine ce que le domaine impose et ce que la phrase demande.
+   *
+   * Le référentiel donne la structure ; la phrase l'emporte partout où elle
+   * parle. Un champ cité dans la phrase et déjà prévu par le modèle garde sa
+   * place dans l'ordre — un formulaire où « Nom » passerait derrière « Notes »
+   * parce qu'il a été cité en dernier serait absurde — mais il prend le
+   * libellé et le type dits, tout en héritant des exemples du modèle.
+   */
+  function fusionne(modele, dits) {
+    var parCle = {};
+    dits.forEach(function (champ) { parCle[champ.cle] = champ; });
+
+    var places = {};
+    var fusion = modele.map(function (champ) {
+      var dit = parCle[champ.cle];
+      if (!dit) return champ;
+      places[champ.cle] = true;
+      return {
+        cle: dit.cle,
+        libelle: dit.libelle,
+        type: dit.type,
+        options: (dit.options && dit.options.length ? dit.options : champ.options).slice(),
+        exemples: champ.exemples.slice(),
+        requis: false,
+      };
+    });
+
+    // Ce que la phrase ajoute et que le modèle ne prévoyait pas vient ensuite.
+    fusion = fusion.concat(dits.filter(function (champ) { return !places[champ.cle]; }));
+
+    // Si le formulaire déborde, on sacrifie les champs déduits, jamais ceux
+    // qui ont été demandés.
+    var max = LEXIQUE.maxChamps;
+    if (fusion.length > max) {
+      var demandes = {};
+      dits.forEach(function (champ) { demandes[champ.cle] = true; });
+      var garde = fusion.filter(function (champ) { return demandes[champ.cle]; });
+      fusion.forEach(function (champ) {
+        if (garde.length < max && !demandes[champ.cle]) garde.push(champ);
+      });
+      fusion = fusion.filter(function (champ) { return garde.indexOf(champ) !== -1; });
+    }
+
+    fusion.forEach(function (champ, i) { champ.requis = i === 0; });
+    return fusion;
+  }
+
   function analyser(phrase) {
     var brute = String(phrase || '').trim();
     if (!brute) throw new Error('Décrivez l’application en quelques mots.');
@@ -188,23 +265,43 @@
     var plat = normalise(brute);
     var entite = trouveEntite(plat);
     var resultat = trouveChamps(brute);
-    var champs = resultat.champs;
+    var dits = resultat.champs;
     var ignore = resultat.ignore;
 
-    if (champs.length === 0) {
+    var modele = modelePour(entite.pluriel, entite.singulier);
+    var aLaLettre = restreint(plat);
+    var champs;
+    var deduits = 0;
+    var depuis = null;
+
+    if (modele && !(dits.length && aLaLettre)) {
+      var cles = {};
+      dits.forEach(function (champ) { cles[champ.cle] = true; });
+      champs = fusionne(modele.champs.map(champDuModele), dits);
+      deduits = champs.filter(function (champ) { return !cles[champ.cle]; }).length;
+      depuis = modele.source;
+    } else if (dits.length) {
+      champs = dits;
+      champs.forEach(function (champ, i) { champ.requis = i === 0; });
+    } else {
       champs = [
-        { cle: 'titre', libelle: 'Titre', type: 'texte', options: [], requis: true },
-        { cle: 'statut', libelle: 'Statut', type: 'choix', options: optionsDuChamp('statut'), requis: false },
-        { cle: 'notes', libelle: 'Notes', type: 'texte_long', options: [], requis: false },
+        { cle: 'titre', libelle: 'Titre', type: 'texte', options: [], exemples: [], requis: true },
+        { cle: 'statut', libelle: 'Statut', type: 'choix', options: optionsDuChamp('statut'), exemples: [], requis: false },
+        { cle: 'notes', libelle: 'Notes', type: 'texte_long', options: [], exemples: [], requis: false },
       ];
-      ignore.push('aucun champ nommé : socle titre/statut/notes appliqué');
+      ignore.push('domaine inconnu et aucun champ nommé : socle titre/statut/notes');
     }
 
     var fonctions = trouveFonctions(plat, champs);
+    if (modele && !(dits.length && aLaLettre)) {
+      // Une phrase restrictive vaut aussi pour les fonctions : on ne fait pas
+      // entrer par la fenêtre ce qu'elle a mis dehors.
+      modele.fonctions.forEach(function (f) { fonctions.add(f); });
+    }
 
     var confiance = 0.35;
     if (entite.sur) confiance += 0.3;
-    if (!ignore.some(function (i) { return i.indexOf('aucun champ') === 0; })) confiance += 0.25;
+    if (modele || dits.length) confiance += 0.25;
     if (fonctions.size > LEXIQUE.fonctionsImplicites.length) confiance += 0.1;
 
     var titre = entite.pluriel;
@@ -219,6 +316,8 @@
       pluriel: entite.pluriel,
       champs: champs,
       fonctions: Array.from(fonctions).sort(),
+      deduits: deduits,
+      depuis: depuis,
       ignore: ignore,
       confiance: Math.min(1, confiance),
     };
@@ -247,6 +346,13 @@
   }
 
   function exemple(champ, i) {
+    // Le référentiel connaît le domaine : « Acheter du pain » vaut mieux que
+    // « Titre 1 ». On ne s'en sert que pour ce qui se remplit librement — les
+    // dates, les choix et les nombres ont déjà des valeurs sensées plus bas.
+    var libres = champ.exemples || [];
+    if (libres.length && (champ.type === 'texte' || champ.type === 'texte_long')) {
+      return "'" + echappeJs(libres[i % libres.length]) + "'";
+    }
     if (champ.type === 'booleen') return i === 1 ? 'true' : 'false';
     if (champ.type === 'nombre') return String([3, 12, 7][i % 3]);
     if (champ.type === 'pourcentage') return String([25, 60, 90][i % 3]);
@@ -649,7 +755,28 @@
     };
   }
 
-  var MoteurApp = { analyser: analyser, generer: generer, normalise: normalise, identifiant: identifiant };
+  /**
+   * Le domaine reconnu dans la phrase, ou null.
+   *
+   * Sert à l'aiguillage de la page : « un carnet de contacts » est une
+   * application parce qu'un carnet de contacts est un domaine connu, pas
+   * parce que la phrase contient un mot-clé particulier.
+   */
+  function domaine(phrase) {
+    var entite = trouveEntite(normalise(String(phrase || '')));
+    if (!entite.sur) return null;
+    var cle = normalise(entite.pluriel);
+    return LEXIQUE.modeles[cle] ? cle : null;
+  }
+
+  var MoteurApp = {
+    analyser: analyser,
+    generer: generer,
+    normalise: normalise,
+    identifiant: identifiant,
+    domaine: domaine,
+    domaines: function () { return Object.keys(LEXIQUE.modeles).sort(); },
+  };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = MoteurApp;
   else racine.MoteurApp = MoteurApp;

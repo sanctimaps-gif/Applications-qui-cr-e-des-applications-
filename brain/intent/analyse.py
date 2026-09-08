@@ -25,6 +25,11 @@ from .lexique import (
     singulier,
     type_du_champ,
 )
+from .referentiel import modele_pour, restreint
+
+#: Au-dela, un formulaire devient illisible. Vaut pour la fusion comme pour
+#: l'enumeration explicite.
+MAX_CHAMPS = 9
 
 #: Libelles lisibles des cibles de generation.
 CIBLES_LISIBLES = {
@@ -43,6 +48,9 @@ class Champ:
     type: str  # texte | texte_long | nombre | date | booleen | choix | email | url
     options: list[str] = field(default_factory=list)
     requis: bool = False
+    #: Valeurs credibles pour remplir l'application des l'ouverture. Viennent
+    #: du referentiel quand le domaine est reconnu ; vides sinon.
+    exemples: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -80,6 +88,7 @@ class Intention:
                     "type": c.type,
                     "options": list(c.options),
                     "requis": c.requis,
+                    "exemples": list(c.exemples),
                 }
                 for c in self.champs
             ],
@@ -102,6 +111,7 @@ class Intention:
                     type=c["type"],
                     options=list(c.get("options", [])),
                     requis=bool(c.get("requis", False)),
+                    exemples=list(c.get("exemples", [])),
                 )
                 for c in donnees.get("champs", [])
             ],
@@ -127,6 +137,8 @@ class Intention:
         for champ in self.champs:
             details = f" ({', '.join(champ.options)})" if champ.options else ""
             lignes.append(f"      - {champ.libelle} : {champ.type}{details}")
+        for note in self.compris[3:]:
+            lignes.append(f"  deduit    : {note}")
         lignes.append(f"  fonctions : {', '.join(sorted(self.fonctions))}")
         lignes.append(f"  cible     : {CIBLES_LISIBLES.get(self.cible, self.cible)}")
         lignes.append(f"  confiance : {self.confiance:.0%}")
@@ -244,8 +256,8 @@ def _trouve_champs(texte: str) -> tuple[list[Champ], list[str]]:
                 requis=not champs,  # le premier champ est obligatoire
             )
         )
-        if len(champs) >= 8:
-            ignore.append("champs au-delà du huitième")
+        if len(champs) >= MAX_CHAMPS:
+            ignore.append(f"champs au-delà du {MAX_CHAMPS}e")
             return False
         return True
 
@@ -298,16 +310,94 @@ def _titre(intention_entite: str, texte: str) -> str:
     return intention_entite
 
 
+def _champ_du_modele(donnees: dict) -> Champ:
+    """Convertit une entree du referentiel en champ."""
+    libelle = donnees["libelle"]
+    return Champ(
+        cle=identifiant(libelle),
+        libelle=libelle,
+        type=donnees["type"],
+        options=list(donnees.get("options", [])),
+        exemples=list(donnees.get("exemples", [])),
+    )
+
+
+def _fusionne(modele: list[Champ], dits: list[Champ]) -> list[Champ]:
+    """Combine ce que le domaine impose et ce que la phrase demande.
+
+    Le referentiel donne la structure ; la phrase l'emporte partout ou elle
+    parle. Un champ nomme dans la phrase et deja prevu par le modele garde sa
+    place dans l'ordre — un formulaire ou « Nom » passe derriere « Notes »
+    parce que l'utilisateur l'a cite en dernier serait absurde — mais il prend
+    le libelle et le type dits, tout en heritant des exemples du modele.
+    """
+    par_cle = {champ.cle: champ for champ in dits}
+    fusion: list[Champ] = []
+    places: set[str] = set()
+
+    for champ in modele:
+        dit = par_cle.get(champ.cle)
+        if dit is None:
+            fusion.append(champ)
+        else:
+            fusion.append(
+                Champ(
+                    cle=dit.cle,
+                    libelle=dit.libelle,
+                    type=dit.type,
+                    options=list(dit.options or champ.options),
+                    exemples=list(champ.exemples),
+                )
+            )
+            places.add(champ.cle)
+
+    # Ce que la phrase ajoute et que le modele ne prevoyait pas vient ensuite.
+    ajouts = [champ for champ in dits if champ.cle not in places]
+    fusion.extend(ajouts)
+
+    # Si le formulaire deborde, on sacrifie les champs deduits, jamais ceux
+    # qui ont ete demandes.
+    if len(fusion) > MAX_CHAMPS:
+        demandes = {champ.cle for champ in dits}
+        garde = [c for c in fusion if c.cle in demandes]
+        for champ in fusion:
+            if len(garde) >= MAX_CHAMPS:
+                break
+            if champ.cle not in demandes:
+                garde.append(champ)
+        fusion = [c for c in fusion if c in garde]
+
+    for indice, champ in enumerate(fusion):
+        champ.requis = indice == 0
+    return fusion
+
+
 def analyser(demande: str) -> Intention:
     """Analyse une demande en francais et renvoie la specification comprise."""
     if not demande or not demande.strip():
         raise ValueError("la demande est vide")
 
     singulier_nom, pluriel_nom, entite_sure = _trouve_entite(demande)
-    champs, ignore = _trouve_champs(demande)
+    dits, ignore = _trouve_champs(demande)
 
-    if not champs:
-        # Sans champ explicite, on installe un socle utilisable plutot que rien.
+    # Le referentiel sait ce que contient une application de ce type. C'est ce
+    # qui evite d'avoir a dicter les champs : « un carnet de contacts » suffit.
+    modele = modele_pour(pluriel_nom, singulier_nom)
+    a_la_lettre = restreint(demande)
+    deduits = 0
+    depuis: str | None = None
+
+    if modele is not None and not (dits and a_la_lettre):
+        champs_modele = [_champ_du_modele(d) for d in modele["champs"]]
+        champs = _fusionne(champs_modele, dits)
+        deduits = sum(1 for c in champs if c.cle not in {d.cle for d in dits})
+        depuis = modele["source"]
+    elif dits:
+        champs = dits
+        for indice, champ in enumerate(champs):
+            champ.requis = indice == 0
+    else:
+        # Domaine inconnu et rien de nomme : un socle utilisable plutot que rien.
         champs = [
             Champ(cle="titre", libelle="Titre", type="texte", requis=True),
             Champ(
@@ -318,21 +408,29 @@ def analyser(demande: str) -> Intention:
             ),
             Champ(cle="notes", libelle="Notes", type="texte_long"),
         ]
-        ignore.append("aucun champ nomme : socle titre/statut/notes applique")
+        ignore.append("domaine inconnu et aucun champ nomme : socle titre/statut/notes")
 
     fonctions = _trouve_fonctions(demande, champs)
+    if modele is not None and not (dits and a_la_lettre):
+        # Une phrase restrictive vaut aussi pour les fonctions : on ne fait pas
+        # entrer par la fenetre ce qu'elle a mis dehors.
+        fonctions |= set(modele["fonctions"])
 
     # La confiance dit a l'utilisateur a quel point la phrase a ete comprise,
     # au lieu de laisser croire a une certitude qui n'existe pas.
     confiance = 0.35
     if entite_sure:
         confiance += 0.3
-    if not any("aucun champ nomme" in i for i in ignore):
+    if modele is not None or dits:
         confiance += 0.25
     if len(fonctions) > len(FONCTIONS_IMPLICITES):
         confiance += 0.1
 
     compris = [f"entite : {pluriel_nom}", f"{len(champs)} champ(s)", f"{len(fonctions)} fonction(s)"]
+    if deduits and depuis:
+        compris.append(f"{deduits} champ(s) deduit(s) de ce que font {depuis}")
+    if dits and a_la_lettre:
+        compris.append("phrase restrictive : rien n'a ete ajoute")
 
     return Intention(
         demande=demande.strip(),

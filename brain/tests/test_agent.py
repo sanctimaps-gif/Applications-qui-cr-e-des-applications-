@@ -107,7 +107,9 @@ class TestAtelier(unittest.TestCase):
         self.assertTrue(self._faire("annule").echec)
 
     def test_refus_des_operations_impossibles(self) -> None:
-        self._faire("crée une liste de tâches avec un titre")
+        # « juste » coupe le referentiel : le projet n'a donc qu'un seul champ,
+        # et c'est bien ce cas-la qu'on veut voir refuse.
+        self._faire("crée une liste de tâches avec juste un titre")
         self.assertTrue(self._faire("supprime le champ titre").echec, "dernier champ")
         self.assertTrue(self._faire("supprime le champ inexistant").echec)
         self.assertTrue(self._faire("supprime l'ajout").echec, "fonction indispensable")
@@ -169,7 +171,7 @@ class TestAtelierExecution(unittest.TestCase):
             atelier = Atelier(dossier)
             faire = lambda p: atelier.executer(interpreter(p))  # noqa: E731
 
-            faire("crée une application de gestion de tâches avec un titre et une priorité")
+            faire("crée une application de gestion de tâches avec juste un titre et une priorité")
             for instruction in ("ajoute un champ prix", "ajoute une case terminé", "ajoute la recherche"):
                 self.assertFalse(faire(instruction).echec, instruction)
 
