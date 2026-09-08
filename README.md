@@ -61,6 +61,30 @@ La vitesse vient de l'architecture, pas d'un réglage :
 
 ---
 
+## Votre propre IA, sans aucune clé
+
+Le dossier [`brain/`](brain/) contient de quoi **créer une IA à partir de zéro** : votre tokeniseur,
+votre architecture, vos poids, entraînés sur votre texte. Aucun poids emprunté, aucune clé, aucun
+appel sortant. Une fois entraînée, elle se sert en local et Forge l'utilise comme n'importe quel
+fournisseur :
+
+```bash
+pip install -r requirements.txt
+python3 -m brain tokenizer --corpus ./mes-textes --sortie ./mon-ia --vocab 8192
+python3 -m brain preparer  --corpus ./mes-textes --sortie ./mon-ia
+python3 -m brain entrainer --sortie ./mon-ia --preset micro --etapes 20000
+python3 -m brain servir    --modele ./mon-ia --port 8377
+
+export FORGE_CUSTOM_BASE_URL=http://127.0.0.1:8377/v1
+export FORGE_PROVIDER_ORDER=custom
+node dist/cli.js doctor      # ● custom  API joignable
+```
+
+Un avertissement honnête, détaillé dans [`brain/README.md`](brain/README.md) : l'écart de calcul
+entre ce que vous pouvez entraîner sur une machine et un grand assistant actuel est d'environ **un
+million de fois**. Ce dossier vous donne la chaîne complète et réelle ; il ne vous donne pas
+l'échelle, que seul un centre de calcul procure.
+
 ## Les deux éditions
 
 | | Édition navigateur | Édition complète |

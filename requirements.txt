@@ -1,0 +1,5 @@
+# forge-brain — creer une IA a partir de zero.
+# Deux bibliotheques de calcul, et rien d'autre : aucun modele pre-entraine,
+# aucun client d'API, aucune dependance a un service exterieur.
+torch>=2.1
+numpy>=1.24

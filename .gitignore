@@ -8,3 +8,10 @@ coverage/
 .forge/
 forge-projects/
 *.log
+
+# forge-brain
+__pycache__/
+*.pyc
+*.pt
+*.bin
+mon-ia/
