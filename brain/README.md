@@ -216,7 +216,19 @@ Compris : Application de tâches
 `--expliquer` s'arrête là, sans rien écrire. La **confiance** et la ligne `ignoré` sont volontaires :
 un générateur qui devine en silence est pire qu'un générateur qui avoue.
 
-### Trois cibles, à partir de la même phrase
+### Les sites web
+
+`python3 -m brain site "…"` écrit un **site complet** : navigation, section d'accueil, bandeau de
+chiffres, à propos, services, galerie, tarifs, équipe, avis, horaires, actualités, FAQ, newsletter,
+contact avec formulaire validé — assemblés selon l'activité reconnue (restaurant, coiffure,
+photographe, artisan, boutique, cabinet, association, hébergement, école, portfolio, garage,
+événement, immobilier, bien-être, sport, ou générique pour tout le reste).
+
+Le moteur vit dans [`web/moteur.js`](../web/moteur.js) : une seule implémentation, en JavaScript,
+qui tourne aussi bien ici sous Node que dans la page publique du dépôt — donc sans divergence
+possible entre les deux.
+
+### Trois cibles d'application, à partir de la même phrase
 
 La phrase décide de ce qui est produit. Aucune dépendance dans aucun des trois cas.
 
@@ -278,6 +290,7 @@ modèle — donc l'échelle décrite plus haut.
 | `agent/commandes.py` | Instruction française → opération nommée, ou refus argumenté. |
 | `agent/atelier.py` | La boucle : outils confinés, régénération, instantanés, tests, historique. |
 | `agent/repl.py` | L'interface en console, avec diffs colorés. |
+| `intent/site.py` | Pont vers le moteur de sites (`web/moteur.js`), en JavaScript. |
 
 ## Les tests
 
@@ -285,7 +298,7 @@ modèle — donc l'échelle décrite plus haut.
 python3 -m unittest discover -s brain/tests -t .
 ```
 
-96 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
+110 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
 absence de perte de caractères au découpage, **causalité** (aucune fuite d'information du futur),
 **équivalence entre génération avec et sans cache**, chute réelle de la perte à l'entraînement,
 débordement de contexte, chaîne complète de bout en bout, et contrat du serveur.

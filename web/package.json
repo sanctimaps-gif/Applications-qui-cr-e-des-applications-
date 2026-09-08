@@ -1,0 +1,4 @@
+{
+  "//": "Le depot est en modules ES ; ce moteur doit rester un script classique pour fonctionner a la fois dans un navigateur (<script src>) et sous Node (require).",
+  "type": "commonjs"
+}

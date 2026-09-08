@@ -3,73 +3,50 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Forge — construisez une application en la décrivant</title>
+    <title>Forge — créez votre site en une phrase</title>
     <meta
       name="description"
-      content="Décrivez une application : Forge la conçoit, écrit chaque fichier et la fait tourner sous vos yeux. Édition navigateur, avec votre propre clé d'IA."
+      content="Décrivez votre site : Forge l'écrit entièrement, sous vos yeux. Aucune IA extérieure, aucune clé, aucun compte. Tout se passe dans votre navigateur."
     />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Karla:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;700&display=swap"
-    />
+    <meta property="og:title" content="Forge — créez votre site en une phrase" />
+    <meta property="og:description" content="Un générateur de sites qui n'appelle aucune IA. Tout tourne chez vous." />
     <style>
       :root {
-        --paper: #f5f2ed;
+        --papier: #f5f2ed;
         --surface: #fffdfa;
-        --sunken: #ebe6dd;
-        --line: #ded6c9;
-        --line-strong: #b8ac9b;
-        --ink: #2b2622;
-        --ink-soft: #6b6259;
-        --ink-faint: #8f8578;
-
-        --clay: #c9613f;
-        --clay-bright: #e0754f;
-        --clay-wash: #f6e7df;
-
-        --ok: #4b7b5a;
-        --bad: #a93b2e;
-
-        --serif: "Instrument Serif", Georgia, serif;
-        --ui: "Karla", system-ui, -apple-system, "Segoe UI", sans-serif;
-        --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
-        --radius: 12px;
+        --creux: #ebe6dd;
+        --trait: #ded6c9;
+        --trait-fort: #b8ac9b;
+        --encre: #2b2622;
+        --encre-douce: #6b6259;
+        --encre-pale: #8f8578;
+        --argile: #c9613f;
+        --argile-vif: #e0754f;
+        --argile-pale: #f6e7df;
+        --vert: #4b7b5a;
+        --rouge: #a93b2e;
+        --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+        --ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --rayon: 12px;
       }
 
       @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) {
-          --paper: #262320;
+        :root {
+          --papier: #262320;
           --surface: #2f2b27;
-          --sunken: #1e1b19;
-          --line: #433c35;
-          --line-strong: #6a6055;
-          --ink: #ede7df;
-          --ink-soft: #b9afa3;
-          --ink-faint: #8d8377;
-          --clay: #e08a66;
-          --clay-bright: #f0a483;
-          --clay-wash: #3a2a22;
-          --ok: #7bb08d;
-          --bad: #e08579;
+          --creux: #1e1b19;
+          --trait: #433c35;
+          --trait-fort: #6a6055;
+          --encre: #ede7df;
+          --encre-douce: #b9afa3;
+          --encre-pale: #8d8377;
+          --argile: #e08a66;
+          --argile-vif: #f0a483;
+          --argile-pale: #3a2a22;
+          --vert: #7bb08d;
+          --rouge: #e08579;
         }
-      }
-
-      :root[data-theme="dark"] {
-        --paper: #262320;
-        --surface: #2f2b27;
-        --sunken: #1e1b19;
-        --line: #433c35;
-        --line-strong: #6a6055;
-        --ink: #ede7df;
-        --ink-soft: #b9afa3;
-        --ink-faint: #8d8377;
-        --clay: #e08a66;
-        --clay-bright: #f0a483;
-        --clay-wash: #3a2a22;
-        --ok: #7bb08d;
-        --bad: #e08579;
       }
 
       * { box-sizing: border-box; }
@@ -77,398 +54,259 @@
 
       body {
         margin: 0;
-        background: var(--paper);
-        color: var(--ink);
-        font: 400 15px/1.6 var(--ui);
+        background: var(--papier);
+        color: var(--encre);
+        font: 15px/1.6 var(--ui);
         -webkit-font-smoothing: antialiased;
       }
 
       .app { min-height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); }
-      @media (min-width: 941px) { .app { height: 100vh; } }
+      @media (min-width: 981px) { .app { height: 100vh; } }
 
-      /* ------------------------------ barre ------------------------------ */
-      .topbar {
-        display: flex;
-        align-items: baseline;
-        gap: 14px;
-        padding: 14px 22px;
-        border-bottom: 1px solid var(--line);
-        background: var(--surface);
-        flex-wrap: wrap;
+      /* ------------------------------------------------------- en-tête */
+      .barre {
+        display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+        padding: 13px 22px; background: var(--surface); border-bottom: 1px solid var(--trait);
       }
-      .brand { font: 400 27px/1 var(--serif); margin: 0; }
-      .brand em { font-style: italic; color: var(--clay); }
-      .brand-note { color: var(--ink-faint); font-size: 13px; }
-      .state {
-        margin-left: auto;
-        font: 400 12px var(--mono);
-        color: var(--ink-faint);
-        display: flex;
-        align-items: center;
-        gap: 7px;
-      }
-      .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
-      .dot.live { background: var(--ok); }
-      .dot.busy { background: var(--clay); }
-
-      .split { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); min-height: 0; }
-      @media (max-width: 940px) { .split { grid-template-columns: 1fr; } }
-
-      /* --------------------------- conversation --------------------------- */
-      .talk {
-        display: grid;
-        grid-template-rows: auto minmax(0, 1fr) auto;
-        border-right: 1px solid var(--line);
-        min-height: 0;
-      }
-      @media (max-width: 940px) {
-        .talk { border-right: 0; border-bottom: 1px solid var(--line); }
-        .thread { max-height: 46vh; }
+      .marque { font: 400 26px/1 var(--serif); margin: 0; }
+      .marque em { font-style: italic; color: var(--argile); }
+      .note { color: var(--encre-pale); font-size: 13px; }
+      .sceau {
+        margin-left: auto; font: 500 12px var(--ui); color: var(--vert);
+        border: 1px solid var(--vert); border-radius: 999px; padding: 4px 11px;
       }
 
-      /* réglages */
-      .settings { border-bottom: 1px solid var(--line); background: var(--surface); }
-      .settings summary {
-        cursor: pointer;
-        padding: 10px 16px;
-        font: 500 13px var(--ui);
-        color: var(--ink-soft);
-        list-style: none;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .settings summary::-webkit-details-marker { display: none; }
-      .settings summary::before { content: "⚙"; color: var(--clay); }
-      .settings-body { padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 11px; }
-      .settings label { display: block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 4px; }
-      .settings input, .settings select {
-        width: 100%;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--paper);
-        color: var(--ink);
-        padding: 8px 10px;
-        font: 400 13.5px var(--ui);
-      }
-      .settings input[type="password"], .settings input#modele { font-family: var(--mono); font-size: 12.5px; }
-      .key-note { font-size: 12px; color: var(--ink-faint); margin: 0; }
-      .key-note a { color: var(--clay); }
+      .colonnes { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); min-height: 0; }
+      @media (max-width: 980px) { .colonnes { grid-template-columns: 1fr; } }
 
-      .thread { overflow-y: auto; padding: 20px 18px; display: flex; flex-direction: column; gap: 16px; }
-      .turn { display: flex; flex-direction: column; gap: 6px; }
-      .who {
-        font: 500 11px var(--ui);
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--ink-faint);
+      /* ------------------------------------------------------- commande */
+      .commande {
+        display: flex; flex-direction: column; gap: 14px; padding: 20px;
+        border-right: 1px solid var(--trait); overflow-y: auto;
       }
-      .bubble {
-        border-radius: var(--radius);
-        padding: 11px 14px;
-        font-size: 14.5px;
-        border: 1px solid var(--line);
-        background: var(--surface);
-      }
-      .turn.mine .bubble { background: var(--clay-wash); border-color: var(--clay); }
-      .bubble p { margin: 0 0 8px; }
-      .bubble p:last-child { margin-bottom: 0; }
+      @media (max-width: 980px) { .commande { border-right: 0; border-bottom: 1px solid var(--trait); } }
 
-      .progress {
-        font: 400 12px/1.75 var(--mono);
-        color: var(--ink-soft);
-        border-left: 2px solid var(--line);
-        padding-left: 11px;
-        margin-top: 4px;
-        max-height: 190px;
-        overflow-y: auto;
+      h2 {
+        font: 700 11.5px var(--ui); text-transform: uppercase; letter-spacing: 0.1em;
+        color: var(--encre-pale); margin: 0;
       }
-      .progress div { white-space: pre-wrap; word-break: break-word; }
-      .p-step { color: var(--clay); }
-      .p-ok { color: var(--ok); }
-      .p-bad { color: var(--bad); }
 
-      .filelist { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
-      .filelist button {
-        font: 400 11.5px var(--mono);
-        border: 1px solid var(--line);
-        background: var(--sunken);
-        color: var(--ink-soft);
-        border-radius: 999px;
-        padding: 3px 9px;
-        cursor: pointer;
+      textarea {
+        width: 100%; min-height: 108px; resize: vertical; padding: 12px;
+        border: 1px solid var(--trait); border-radius: 10px;
+        background: var(--surface); color: inherit; font: 15px/1.55 var(--ui);
       }
-      .filelist button:hover { border-color: var(--clay); color: var(--clay); }
+      :focus-visible { outline: 2px solid var(--argile); outline-offset: 1px; }
 
-      /* composeur */
-      .composer {
-        border-top: 1px solid var(--line);
-        padding: 12px 14px 14px;
-        background: var(--surface);
-        display: flex;
-        flex-direction: column;
-        gap: 9px;
+      .exemples { display: flex; flex-wrap: wrap; gap: 6px; }
+      .exemples button {
+        font: 12px var(--ui); border: 1px dashed var(--trait-fort); background: transparent;
+        color: var(--encre-douce); border-radius: 999px; padding: 5px 11px; cursor: pointer;
       }
-      .composer textarea {
-        width: 100%;
-        min-height: 74px;
-        max-height: 190px;
-        resize: vertical;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        background: var(--paper);
-        color: var(--ink);
-        padding: 11px 12px;
-        font: 400 14.5px/1.55 var(--ui);
-      }
-      :focus-visible { outline: 2px solid var(--clay); outline-offset: 1px; }
-      .composer-row { display: flex; gap: 8px; align-items: center; }
-      .hint { font-size: 12px; color: var(--ink-faint); margin-right: auto; }
+      .exemples button:hover { border-style: solid; border-color: var(--argile); color: var(--argile); }
 
-      button.send {
-        font: 500 14.5px var(--ui);
-        background: var(--clay);
-        color: #fff;
-        border: 0;
-        border-radius: 9px;
-        padding: 9px 18px;
-        cursor: pointer;
+      .principal {
+        font: 600 15px var(--ui); background: var(--argile); color: #fff; border: 0;
+        border-radius: 9px; padding: 12px 18px; cursor: pointer; width: 100%;
       }
-      button.send:hover:not(:disabled) { background: var(--clay-bright); }
-      button:disabled { opacity: 0.45; cursor: not-allowed; }
+      .principal:hover { background: var(--argile-vif); }
 
-      button.quiet {
-        font: 500 12.5px var(--ui);
-        background: transparent;
-        color: var(--ink-soft);
-        border: 1px solid var(--line-strong);
-        border-radius: 8px;
-        padding: 7px 12px;
-        cursor: pointer;
+      .discret {
+        font: 500 12.5px var(--ui); background: transparent; color: var(--encre-douce);
+        border: 1px solid var(--trait-fort); border-radius: 8px; padding: 7px 12px; cursor: pointer;
       }
-      button.quiet:hover:not(:disabled) { background: var(--sunken); color: var(--ink); }
+      .discret:hover { background: var(--creux); color: var(--encre); }
+      button:disabled { opacity: .45; cursor: not-allowed; }
 
-      .seeds { display: flex; flex-wrap: wrap; gap: 6px; }
-      .seeds button {
-        font: 400 12px var(--ui);
-        border: 1px dashed var(--line-strong);
-        background: transparent;
-        color: var(--ink-soft);
-        border-radius: 999px;
-        padding: 5px 11px;
-        cursor: pointer;
+      .compris {
+        background: var(--surface); border: 1px solid var(--trait); border-radius: var(--rayon);
+        padding: 14px; font-size: 13.5px;
       }
-      .seeds button:hover { border-style: solid; border-color: var(--clay); color: var(--clay); }
+      .compris dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 8px 0 0; }
+      .compris dt { color: var(--encre-pale); }
+      .compris dd { margin: 0; font-weight: 600; }
+      .jauge { height: 5px; border-radius: 999px; background: var(--creux); overflow: hidden; margin-top: 10px; }
+      .jauge i { display: block; height: 100%; background: var(--argile); }
 
-      /* ----------------------------- atelier ----------------------------- */
-      .workspace { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
-      .tabs {
-        display: flex;
-        align-items: center;
-        gap: 2px;
-        padding: 8px 14px 0;
-        border-bottom: 1px solid var(--line);
-        background: var(--surface);
-        flex-wrap: wrap;
+      .puces { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+      .puce {
+        font: 11.5px var(--mono); background: var(--creux); border: 1px solid var(--trait);
+        border-radius: 999px; padding: 3px 9px; color: var(--encre-douce);
       }
-      .tab {
-        font: 500 13px var(--ui);
-        background: transparent;
-        border: 0;
-        border-bottom: 2px solid transparent;
-        color: var(--ink-faint);
-        padding: 8px 12px;
-        cursor: pointer;
+
+      details.explication { border-top: 1px solid var(--trait); padding-top: 12px; }
+      details.explication summary { cursor: pointer; font-size: 13px; color: var(--encre-douce); }
+      details.explication p { font-size: 13px; color: var(--encre-douce); }
+
+      /* -------------------------------------------------------- atelier */
+      .atelier { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+      .onglets {
+        display: flex; align-items: center; gap: 2px; flex-wrap: wrap;
+        padding: 8px 16px 0; background: var(--surface); border-bottom: 1px solid var(--trait);
       }
-      .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--clay); }
-      .tabs .spacer { margin-left: auto; display: flex; gap: 7px; padding-bottom: 6px; }
+      .onglet {
+        font: 500 13px var(--ui); background: none; border: 0; border-bottom: 2px solid transparent;
+        color: var(--encre-pale); padding: 8px 12px; cursor: pointer;
+      }
+      .onglet[aria-selected="true"] { color: var(--encre); border-bottom-color: var(--argile); }
+      .onglets .fin { margin-left: auto; display: flex; gap: 7px; padding-bottom: 6px; }
 
-      .pane { min-height: 0; overflow: hidden; }
-      .pane[hidden] { display: none !important; }
+      .panneau { min-height: 0; overflow: hidden; }
+      .panneau[hidden] { display: none !important; }
 
-      #preview-pane { padding: 14px; display: grid; grid-template-rows: minmax(0, 1fr); }
-      @media (max-width: 940px) { #preview-pane { height: 70vh; } }
-      .screen {
-        background: #fff;
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        overflow: hidden;
-        box-shadow: 0 1px 2px rgba(43, 38, 34, 0.06), 0 12px 28px -18px rgba(43, 38, 34, 0.5);
-        display: grid;
-        grid-template-rows: auto minmax(0, 1fr);
-        min-height: 0;
+      #vue-apercu { padding: 14px; display: grid; grid-template-rows: minmax(0, 1fr); }
+      @media (max-width: 980px) { #vue-apercu { height: 76vh; } }
+      .ecran {
+        background: #fff; border: 1px solid var(--trait); border-radius: var(--rayon);
+        overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0;
+        box-shadow: 0 1px 2px rgba(43,38,34,.06), 0 14px 32px -22px rgba(43,38,34,.55);
       }
       .chrome {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        padding: 8px 12px;
-        background: var(--sunken);
-        border-bottom: 1px solid var(--line);
+        display: flex; align-items: center; gap: 7px; padding: 8px 12px;
+        background: var(--creux); border-bottom: 1px solid var(--trait);
       }
-      .chrome i { width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); display: block; }
-      .chrome span { font: 400 11.5px var(--mono); color: var(--ink-faint); margin-left: 6px; }
-      iframe { border: 0; width: 100%; height: 100%; background: #fff; display: block; }
-
-      #files-pane { display: grid; grid-template-columns: minmax(170px, 230px) minmax(0, 1fr); min-height: 0; }
-      @media (max-width: 620px) { #files-pane { grid-template-columns: 1fr; } }
-      .tree { background: var(--sunken); border-right: 1px solid var(--line); overflow-y: auto; padding: 8px 0; }
-      .tree button {
-        all: unset;
-        display: block;
-        width: 100%;
-        padding: 6px 14px;
-        font: 400 12.5px/1.45 var(--mono);
-        color: var(--ink-soft);
-        cursor: pointer;
-        border-left: 3px solid transparent;
-        word-break: break-all;
+      .chrome i { width: 9px; height: 9px; border-radius: 50%; background: var(--trait-fort); }
+      .chrome span { font: 11.5px var(--mono); color: var(--encre-pale); margin-left: 6px; }
+      .chrome .largeurs { margin-left: auto; display: flex; gap: 4px; }
+      .chrome .largeurs button {
+        font: 11px var(--ui); border: 1px solid var(--trait); background: var(--surface);
+        color: var(--encre-douce); border-radius: 6px; padding: 3px 8px; cursor: pointer;
       }
-      .tree button:hover { background: var(--surface); color: var(--ink); }
-      .tree button[aria-current="true"] {
-        background: var(--surface);
-        color: var(--ink);
-        border-left-color: var(--clay);
-        font-weight: 700;
+      .chrome .largeurs button[aria-pressed="true"] { border-color: var(--argile); color: var(--argile); }
+      iframe { border: 0; width: 100%; height: 100%; background: #fff; display: block; margin: 0 auto; transition: max-width .2s; }
+
+      #vue-fichiers { display: grid; grid-template-columns: minmax(170px, 220px) minmax(0, 1fr); min-height: 0; }
+      @media (max-width: 620px) { #vue-fichiers { grid-template-columns: 1fr; } }
+      .arbre { background: var(--creux); border-right: 1px solid var(--trait); overflow-y: auto; padding: 8px 0; }
+      .arbre button {
+        display: block; width: 100%; text-align: left; padding: 6px 14px; border: 0;
+        border-left: 3px solid transparent; background: none; cursor: pointer;
+        font: 12.5px/1.45 var(--mono); color: var(--encre-douce); word-break: break-all;
       }
-      .code-wrap { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
-      .code-bar {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 14px;
-        border-bottom: 1px solid var(--line);
-        background: var(--surface);
-        flex-wrap: wrap;
+      .arbre button:hover { background: var(--surface); color: var(--encre); }
+      .arbre button[aria-current="true"] {
+        background: var(--surface); color: var(--encre); border-left-color: var(--argile); font-weight: 700;
       }
-      .code-bar .path { font: 700 12.5px var(--mono); word-break: break-all; }
-      .code-bar .meta { font: 400 11.5px var(--mono); color: var(--ink-faint); margin-left: auto; }
-      pre { margin: 0; padding: 14px 16px; overflow: auto; font: 400 12.5px/1.7 var(--mono); background: var(--surface); tab-size: 2; }
+      .code { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+      .code-barre {
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        padding: 8px 14px; background: var(--surface); border-bottom: 1px solid var(--trait);
+      }
+      .code-barre .chemin { font: 700 12.5px var(--mono); word-break: break-all; }
+      .code-barre .taille { font: 11.5px var(--mono); color: var(--encre-pale); margin-left: auto; }
+      pre { margin: 0; padding: 14px 16px; overflow: auto; font: 12.5px/1.7 var(--mono); background: var(--surface); tab-size: 2; }
 
-      #log-pane { overflow-y: auto; padding: 16px 18px; }
-      #log { font: 400 12.5px/1.75 var(--mono); color: var(--ink-soft); }
-      #log div { white-space: pre-wrap; word-break: break-word; }
+      .apropos { padding: 18px 22px 30px; background: var(--surface); border-top: 1px solid var(--trait); font-size: 13.5px; color: var(--encre-douce); }
+      .apropos h3 { font: 400 19px var(--serif); color: var(--encre); margin: 0 0 6px; }
+      .apropos p { max-width: 82ch; }
+      .apropos a { color: var(--argile); }
+      .apropos code { font: 12px var(--mono); background: var(--creux); border: 1px solid var(--trait); border-radius: 5px; padding: 1px 5px; }
+      .apropos pre { background: var(--creux); border: 1px solid var(--trait); border-radius: 8px; margin-top: 8px; font-size: 12px; }
 
-      .about { padding: 18px 22px 28px; border-top: 1px solid var(--line); background: var(--surface); font-size: 13.5px; color: var(--ink-soft); }
-      .about h4 { font: 400 20px var(--serif); color: var(--ink); margin: 0 0 6px; }
-      .about p { max-width: 80ch; }
-      .about a { color: var(--clay); }
-      .inline, .about code { font: 400 12px var(--mono); background: var(--sunken); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; word-break: break-all; }
-      .about pre { background: var(--sunken); border: 1px solid var(--line); border-radius: 8px; margin: 8px 0 0; font-size: 12px; max-width: 100%; }
-
-      @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+      @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
     </style>
   </head>
 
   <body>
     <div class="app">
-      <div class="topbar">
-        <h1 class="brand">For<em>ge</em></h1>
-        <span class="brand-note">décrivez une application — elle est écrite, puis elle tourne à droite</span>
-        <div class="state"><i class="dot" id="dot"></i><span id="state-text">chargement…</span></div>
+      <div class="barre">
+        <h1 class="marque">For<em>ge</em></h1>
+        <span class="note">décrivez votre site — il s'écrit sous vos yeux</span>
+        <span class="sceau">aucune IA · aucune clé · rien ne sort de votre navigateur</span>
       </div>
 
-      <div class="split">
-        <!-- ------------------------ conversation ------------------------ -->
-        <section class="talk">
-          <details class="settings" id="settings" open>
-            <summary>Votre moteur d'IA</summary>
-            <div class="settings-body">
-              <div>
-                <label for="fournisseur">Fournisseur</label>
-                <select id="fournisseur"></select>
-              </div>
-              <div>
-                <label for="cle">Clé d'API</label>
-                <input id="cle" type="password" placeholder="collez votre clé" autocomplete="off" spellcheck="false" />
-              </div>
-              <div>
-                <label for="modele">Modèle</label>
-                <input id="modele" type="text" spellcheck="false" />
-              </div>
-              <p class="key-note" id="key-note"></p>
-              <p class="key-note">
-                La clé reste dans ce navigateur (<span class="inline">localStorage</span>) et n'est
-                envoyée qu'au fournisseur choisi. Évitez un ordinateur partagé.
-              </p>
-            </div>
-          </details>
+      <div class="colonnes">
+        <!-- ------------------------- commande ------------------------- -->
+        <section class="commande">
+          <h2>Votre site</h2>
 
-          <div class="thread" id="thread" aria-live="polite"></div>
-
-          <div class="composer">
-            <div class="seeds" id="seeds">
-              <button type="button" data-seed="Un minuteur Pomodoro avec cycles travail/pause réglables, signal de fin et historique des sessions du jour.">Minuteur Pomodoro</button>
-              <button type="button" data-seed="Un carnet de recettes : ajout, recherche par ingrédient, liste de courses générée, sauvegarde locale.">Carnet de recettes</button>
-              <button type="button" data-seed="Un tableau kanban avec trois colonnes, création de cartes, glisser-déposer et sauvegarde locale.">Tableau kanban</button>
-            </div>
-            <textarea id="input" placeholder="Décrivez l'application à construire…" spellcheck="false"></textarea>
-            <div class="composer-row">
-              <span class="hint" id="hint">Entrée pour envoyer · Maj+Entrée pour un retour à la ligne</span>
-              <button type="button" class="quiet" id="stop" hidden>Arrêter</button>
-              <button type="button" class="send" id="send">Construire</button>
-            </div>
+          <div class="exemples" id="exemples">
+            <button type="button" data-ex="Un site chaleureux pour mon restaurant Le Tilleul à Annecy, avec la carte, les horaires et un formulaire de contact">Restaurant</button>
+            <button type="button" data-ex="Site vitrine élégant pour une photographe de mariage, avec galerie, tarifs et témoignages">Photographe</button>
+            <button type="button" data-ex="Un site pour mon salon de coiffure, avec les prestations, les horaires et les avis clients">Coiffure</button>
+            <button type="button" data-ex="Site pour un artisan menuisier, avec réalisations, FAQ et demande de devis">Artisan</button>
+            <button type="button" data-ex="Un site pour mon association de quartier, avec actualités, équipe et adhésion">Association</button>
+            <button type="button" data-ex="Site moderne pour un gîte à la montagne, avec galerie, tarifs et disponibilités">Gîte</button>
           </div>
+
+          <label class="visuellement-cache" for="demande">Décrivez votre site</label>
+          <textarea id="demande" spellcheck="false" placeholder="Ex. : un site chaleureux pour ma boulangerie à Lyon, avec les produits, les horaires et un formulaire de contact…"></textarea>
+
+          <button class="principal" id="creer">Créer le site</button>
+
+          <div class="compris" id="compris" hidden></div>
+
+          <details class="explication">
+            <summary>Comment ça marche, sans IA ?</summary>
+            <p>
+              Votre phrase est analysée par des règles de grammaire explicites : l'activité, le nom,
+              la ville, les sections demandées, l'ambiance. Le site est ensuite assemblé à partir de
+              blocs éprouvés. C'est <strong>déterministe</strong> : la même phrase donne toujours
+              exactement le même site, correct par construction.
+            </p>
+            <p>
+              Aucun modèle de langue n'est appelé, ici ni ailleurs. Le moteur
+              (<code>web/moteur.js</code>) est un fichier lisible que vous pouvez ouvrir.
+            </p>
+          </details>
         </section>
 
         <!-- -------------------------- atelier -------------------------- -->
-        <section class="workspace">
-          <div class="tabs" role="tablist">
-            <button class="tab" role="tab" id="tab-preview" aria-selected="true" aria-controls="preview-pane">Aperçu</button>
-            <button class="tab" role="tab" id="tab-files" aria-selected="false" aria-controls="files-pane">Fichiers</button>
-            <button class="tab" role="tab" id="tab-log" aria-selected="false" aria-controls="log-pane">Journal</button>
-            <div class="spacer">
-              <button class="quiet" id="reload" title="Relancer l'application dans l'aperçu">Relancer</button>
-              <button class="quiet" id="download">Télécharger (.zip)</button>
+        <section class="atelier">
+          <div class="onglets" role="tablist">
+            <button class="onglet" role="tab" id="tab-apercu" aria-selected="true" aria-controls="vue-apercu">Aperçu</button>
+            <button class="onglet" role="tab" id="tab-fichiers" aria-selected="false" aria-controls="vue-fichiers">Fichiers</button>
+            <div class="fin">
+              <button class="discret" id="ouvrir">Ouvrir dans un onglet</button>
+              <button class="discret" id="telecharger">Télécharger (.zip)</button>
             </div>
           </div>
 
-          <div class="pane" id="preview-pane" role="tabpanel" aria-labelledby="tab-preview">
-            <div class="screen">
-              <div class="chrome"><i></i><i></i><i></i><span id="chrome-label">exemple · index.html</span></div>
-              <iframe id="preview" title="Aperçu de l'application générée" sandbox="allow-scripts allow-modals allow-forms allow-popups"></iframe>
-            </div>
-          </div>
-
-          <div class="pane" id="files-pane" role="tabpanel" aria-labelledby="tab-files" hidden>
-            <nav class="tree" id="tree" aria-label="Fichiers"></nav>
-            <div class="code-wrap">
-              <div class="code-bar">
-                <span class="path" id="file-path">—</span>
-                <span class="meta" id="file-meta"></span>
-                <button class="quiet" id="copy">Copier</button>
+          <div class="panneau" id="vue-apercu" role="tabpanel" aria-labelledby="tab-apercu">
+            <div class="ecran">
+              <div class="chrome">
+                <i></i><i></i><i></i>
+                <span id="etiquette">exemple · index.html</span>
+                <div class="largeurs" id="largeurs">
+                  <button type="button" data-l="100%" aria-pressed="true">Bureau</button>
+                  <button type="button" data-l="820px" aria-pressed="false">Tablette</button>
+                  <button type="button" data-l="390px" aria-pressed="false">Mobile</button>
+                </div>
               </div>
-              <pre id="file-body"></pre>
+              <iframe id="apercu" title="Aperçu du site généré" sandbox="allow-scripts allow-modals allow-forms allow-popups"></iframe>
             </div>
           </div>
 
-          <div class="pane" id="log-pane" role="tabpanel" aria-labelledby="tab-log" hidden>
-            <div id="log"></div>
+          <div class="panneau" id="vue-fichiers" role="tabpanel" aria-labelledby="tab-fichiers" hidden>
+            <nav class="arbre" id="arbre" aria-label="Fichiers du site"></nav>
+            <div class="code">
+              <div class="code-barre">
+                <span class="chemin" id="chemin">—</span>
+                <span class="taille" id="taille"></span>
+                <button class="discret" id="copier">Copier</button>
+              </div>
+              <pre id="contenu"></pre>
+            </div>
           </div>
         </section>
       </div>
     </div>
 
-    <div class="about">
-      <h4>Cette page, et l'outil complet</h4>
+    <div class="apropos">
+      <h3>Ce que vous venez d'utiliser</h3>
       <p>
-        Vous êtes sur l'<strong>édition navigateur</strong> de Forge : un seul fichier HTML, aucune
-        installation, aucun serveur. Elle construit des applications web autonomes qui tournent
-        directement dans l'aperçu, en appelant le fournisseur d'IA dont vous fournissez la clé.
+        Un générateur de sites qui n'appelle <strong>aucune intelligence artificielle</strong> :
+        ni la mienne, ni celle d'un autre. Pas de clé d'API, pas de compte, pas de quota, aucune
+        donnée envoyée nulle part. Le site produit est lui aussi autonome — aucune police distante,
+        aucun script tiers, aucune image chargée depuis l'extérieur.
       </p>
       <p>
-        L'<strong>édition complète</strong> s'installe sur votre machine et va bien plus loin : elle
-        construit n'importe quelle pile (Node, Python, Go, Rust, .NET…), exécute réellement
-        <span class="inline">install</span>, <span class="inline">build</span> et
-        <span class="inline">test</span>, corrige ses propres erreurs, publie sur GitHub, et
-        n'impose aucune limite de création. Elle fonctionne avec 22 fournisseurs, dont quatre
-        entièrement locaux — donc hors ligne.
+        Le même moteur s'utilise en ligne de commande, avec l'atelier qui modifie un site
+        existant (« ajoute une galerie », « passe en API », « teste », « annule ») :
       </p>
       <pre>git clone https://github.com/sanctimaps-gif/Applications-qui-cr-e-des-applications-.git
 cd Applications-qui-cr-e-des-applications-
-npm install &amp;&amp; npm run build
-export OPENAI_API_KEY=sk-...     # ou toute autre clé — ou Ollama, 100 % hors ligne
-node dist/cli.js serve           # ouvre http://127.0.0.1:7331</pre>
+python3 -m brain atelier --projet ./mon-site</pre>
       <p style="margin-top: 12px">
         Code source :
         <a href="https://github.com/sanctimaps-gif/Applications-qui-cr-e-des-applications-" target="_blank" rel="noopener">github.com/sanctimaps-gif/Applications-qui-cr-e-des-applications-</a>
@@ -476,873 +314,204 @@ node dist/cli.js serve           # ouvre http://127.0.0.1:7331</pre>
       </p>
     </div>
 
+    <script src="web/moteur.js"></script>
     <script>
-      "use strict";
-      const $ = (id) => document.getElementById(id);
+      (function () {
+        'use strict';
+        var $ = function (id) { return document.getElementById(id); };
 
-      /* ================================================================ *
-       * Fournisseurs. Chacun est appele directement depuis le navigateur,
-       * avec la cle de l'utilisateur : rien ne transite par un serveur
-       * intermediaire.
-       * ================================================================ */
-      const FOURNISSEURS = {
-        openai: {
-          nom: "OpenAI",
-          modele: "gpt-4.1",
-          aide: 'Clé sur platform.openai.com → API keys.',
-          lien: "https://platform.openai.com/api-keys",
-          appel: chatCompletions("https://api.openai.com/v1"),
-        },
-        anthropic: {
-          nom: "Anthropic (Claude)",
-          modele: "claude-sonnet-4-20250514",
-          aide: "Clé sur console.anthropic.com → API keys.",
-          lien: "https://console.anthropic.com/settings/keys",
-          appel: appelAnthropic,
-        },
-        google: {
-          nom: "Google (Gemini)",
-          modele: "gemini-2.0-flash",
-          aide: "Clé sur aistudio.google.com → Get API key.",
-          lien: "https://aistudio.google.com/app/apikey",
-          appel: appelGoogle,
-        },
-        groq: {
-          nom: "Groq",
-          modele: "llama-3.3-70b-versatile",
-          aide: "Clé sur console.groq.com → API keys.",
-          lien: "https://console.groq.com/keys",
-          appel: chatCompletions("https://api.groq.com/openai/v1"),
-        },
-        mistral: {
-          nom: "Mistral",
-          modele: "mistral-large-latest",
-          aide: "Clé sur console.mistral.ai → API keys.",
-          lien: "https://console.mistral.ai/api-keys",
-          appel: chatCompletions("https://api.mistral.ai/v1"),
-        },
-        deepseek: {
-          nom: "DeepSeek",
-          modele: "deepseek-chat",
-          aide: "Clé sur platform.deepseek.com.",
-          lien: "https://platform.deepseek.com/api_keys",
-          appel: chatCompletions("https://api.deepseek.com/v1"),
-        },
-        openrouter: {
-          nom: "OpenRouter",
-          modele: "anthropic/claude-sonnet-4",
-          aide: "Une seule clé donne accès à des centaines de modèles.",
-          lien: "https://openrouter.ai/keys",
-          appel: chatCompletions("https://openrouter.ai/api/v1"),
-        },
-        ollama: {
-          nom: "Ollama (local, sans clé)",
-          modele: "qwen2.5-coder:14b",
-          aide:
-            "Aucune clé. Lancez `ollama serve`, et autorisez cette page : OLLAMA_ORIGINS=* ollama serve",
-          lien: "https://ollama.com/download",
-          sansCle: true,
-          appel: chatCompletions("http://127.0.0.1:11434/v1"),
-        },
-      };
+        var site = null;      // { fichiers: {...}, spec: {...} }
+        var choisi = 'index.html';
 
-      function chatCompletions(base) {
-        return async function (options) {
-          const entetes = { "content-type": "application/json" };
-          if (options.cle) entetes.authorization = "Bearer " + options.cle;
-
-          const reponse = await fetch(base + "/chat/completions", {
-            method: "POST",
-            headers: entetes,
-            signal: options.signal,
-            body: JSON.stringify({
-              model: options.modele,
-              messages: [{ role: "user", content: options.prompt }],
-              temperature: 0.2,
-              max_tokens: 8000,
-            }),
+        /* ------------------------------------------------------ onglets */
+        function onglet(nom) {
+          ['apercu', 'fichiers'].forEach(function (cle) {
+            $('tab-' + cle).setAttribute('aria-selected', String(cle === nom));
+            $('vue-' + cle).hidden = cle !== nom;
           });
-          if (!reponse.ok) throw await erreurHttp(reponse);
-          const charge = await reponse.json();
-          return charge.choices?.[0]?.message?.content ?? "";
-        };
-      }
+        }
+        $('tab-apercu').onclick = function () { onglet('apercu'); };
+        $('tab-fichiers').onclick = function () { onglet('fichiers'); };
 
-      async function appelAnthropic(options) {
-        const reponse = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-api-key": options.cle,
-            "anthropic-version": "2023-06-01",
-            // Sans cet en-tete, l'API refuse les appels venant d'un navigateur.
-            "anthropic-dangerous-direct-browser-access": "true",
-          },
-          signal: options.signal,
-          body: JSON.stringify({
-            model: options.modele,
-            max_tokens: 8000,
-            temperature: 0.2,
-            messages: [{ role: "user", content: options.prompt }],
-          }),
+        /* ------------------------------------------------------- aperçu */
+        function assembler(fichiers) {
+          var html = fichiers['index.html'];
+          html = html.replace(/<link\b[^>]*href="styles\.css"[^>]*>/i, '<style>\n' + fichiers['styles.css'] + '\n</style>');
+          html = html.replace(/<script\b[^>]*src="script\.js"[^>]*><\/script>/i, '<script>\n' + fichiers['script.js'] + '\n<\/script>');
+          return html;
+        }
+
+        function afficher() {
+          if (!site) return;
+          $('apercu').srcdoc = assembler(site.fichiers);
+          $('etiquette').textContent = site.spec.nom + ' · index.html';
+          rendreArbre();
+        }
+
+        function rendreArbre() {
+          var arbre = $('arbre');
+          arbre.textContent = '';
+          Object.keys(site.fichiers).forEach(function (chemin) {
+            var bouton = document.createElement('button');
+            bouton.type = 'button';
+            bouton.textContent = chemin;
+            bouton.setAttribute('aria-current', String(chemin === choisi));
+            bouton.onclick = function () { choisi = chemin; rendreArbre(); };
+            arbre.appendChild(bouton);
+          });
+          var contenu = site.fichiers[choisi] || '';
+          $('chemin').textContent = choisi;
+          $('taille').textContent = contenu.split('\n').length + ' lignes · ' + contenu.length + ' o';
+          $('contenu').textContent = contenu;
+        }
+
+        /* ------------------------------------------------- ce qui est compris */
+        function montrerCompris(spec) {
+          var bloc = $('compris');
+          bloc.hidden = false;
+          var sections = spec.sections
+            .map(function (s) { return '<span class="puce">' + (Moteur.TITRES_NAV[s] || s) + '</span>'; })
+            .join('');
+          bloc.innerHTML =
+            '<h2>Compris</h2><dl>' +
+            '<dt>activité</dt><dd>' + spec.metierNom + '</dd>' +
+            '<dt>nom</dt><dd>' + spec.nom + '</dd>' +
+            (spec.ville ? '<dt>ville</dt><dd>' + spec.ville + '</dd>' : '') +
+            '<dt>ambiance</dt><dd>' + spec.ambiance + '</dd>' +
+            '</dl><div class="puces">' + sections + '</div>' +
+            '<div class="jauge"><i style="width:' + Math.round(spec.confiance * 100) + '%"></i></div>';
+        }
+
+        /* ------------------------------------------------------ création */
+        function creer(phrase) {
+          try {
+            var spec = Moteur.analyser(phrase);
+            site = { spec: spec, fichiers: Moteur.generer(spec) };
+            choisi = 'index.html';
+            montrerCompris(spec);
+            afficher();
+            onglet('apercu');
+          } catch (probleme) {
+            var bloc = $('compris');
+            bloc.hidden = false;
+            bloc.innerHTML = '<h2>Problème</h2><p>' + probleme.message + '</p>';
+          }
+        }
+
+        $('creer').onclick = function () { creer($('demande').value.trim()); };
+        $('demande').addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) creer($('demande').value.trim());
         });
-        if (!reponse.ok) throw await erreurHttp(reponse);
-        const charge = await reponse.json();
-        return (charge.content ?? [])
-          .filter((bloc) => bloc.type === "text")
-          .map((bloc) => bloc.text)
-          .join("");
-      }
 
-      async function appelGoogle(options) {
-        const url =
-          "https://generativelanguage.googleapis.com/v1beta/models/" +
-          encodeURIComponent(options.modele) +
-          ":generateContent";
-        const reponse = await fetch(url, {
-          method: "POST",
-          headers: { "content-type": "application/json", "x-goog-api-key": options.cle },
-          signal: options.signal,
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: options.prompt }] }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 8000 },
-          }),
-        });
-        if (!reponse.ok) throw await erreurHttp(reponse);
-        const charge = await reponse.json();
-        return (charge.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("");
-      }
-
-      async function erreurHttp(reponse) {
-        const texte = await reponse.text().catch(() => "");
-        let detail = texte.slice(0, 300);
-        try {
-          const parse = JSON.parse(texte);
-          detail = parse.error?.message ?? parse.message ?? detail;
-        } catch {
-          /* le corps n'etait pas du JSON */
-        }
-        const erreur = new Error(`HTTP ${reponse.status} — ${detail}`);
-        erreur.statut = reponse.status;
-        return erreur;
-      }
-
-      /* ------------------------- réglages persistés ------------------------ */
-      const REGLAGES = "forge.reglages";
-
-      function lireReglages() {
-        try {
-          return JSON.parse(localStorage.getItem(REGLAGES)) ?? {};
-        } catch {
-          return {};
-        }
-      }
-
-      function ecrireReglages(valeurs) {
-        try {
-          localStorage.setItem(REGLAGES, JSON.stringify(valeurs));
-        } catch {
-          /* navigation privee : les reglages vivent le temps de la session */
-        }
-      }
-
-      function reglagesActuels() {
-        return {
-          fournisseur: $("fournisseur").value,
-          cle: $("cle").value.trim(),
-          modele: $("modele").value.trim(),
-        };
-      }
-
-      function pret() {
-        const { fournisseur, cle } = reglagesActuels();
-        return FOURNISSEURS[fournisseur]?.sansCle ? true : cle.length > 0;
-      }
-
-      /* ============================ projet ============================ */
-      const EXEMPLE = {
-        name: "Liste de courses",
-        summary: "Une liste de courses avec quantités, rayons et total.",
-        example: true,
-        files: [
-          {
-            path: "index.html",
-            content:
-              '<!doctype html>\n<html lang="fr">\n  <head>\n    <meta charset="utf-8" />\n    <meta name="viewport" content="width=device-width, initial-scale=1" />\n    <title>Liste de courses</title>\n    <link rel="stylesheet" href="styles.css" />\n  </head>\n  <body>\n    <main>\n      <h1>Liste de courses</h1>\n      <form id="ajout">\n        <input id="article" placeholder="Article" required />\n        <input id="quantite" type="number" min="1" value="1" />\n        <select id="rayon">\n          <option>Fruits et légumes</option>\n          <option>Frais</option>\n          <option>Épicerie</option>\n          <option>Entretien</option>\n        </select>\n        <button type="submit">Ajouter</button>\n      </form>\n      <ul id="liste"></ul>\n      <p id="resume"></p>\n    </main>\n    <script src="app.js"><\/script>\n  </body>\n</html>\n',
-          },
-          {
-            path: "styles.css",
-            content:
-              ":root {\n  --encre: #2b2622;\n  --papier: #faf7f2;\n  --trait: #e2dacd;\n  --argile: #c9613f;\n}\n\nbody {\n  margin: 0;\n  background: var(--papier);\n  color: var(--encre);\n  font: 15px/1.6 system-ui, sans-serif;\n}\n\nmain {\n  max-width: 480px;\n  margin: 0 auto;\n  padding: 28px 20px 40px;\n}\n\nh1 {\n  font-size: 22px;\n  margin: 0 0 18px;\n}\n\nform {\n  display: grid;\n  grid-template-columns: 1fr 104px;\n  gap: 8px;\n  margin-bottom: 20px;\n}\n\ninput,\nselect,\nbutton {\n  font: inherit;\n  min-width: 0;\n  padding: 9px 11px;\n  border: 1px solid var(--trait);\n  border-radius: 8px;\n  background: #fff;\n  color: inherit;\n}\n\nbutton {\n  background: var(--argile);\n  color: #fff;\n  border-color: var(--argile);\n  cursor: pointer;\n}\n\nul {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n}\n\nli {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  background: #fff;\n  border: 1px solid var(--trait);\n  border-radius: 8px;\n  padding: 9px 12px;\n}\n\nli.pris span.nom {\n  text-decoration: line-through;\n  opacity: 0.45;\n}\n\nli .rayon {\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.06em;\n  color: #8f8578;\n  margin-left: auto;\n}\n\nli .retirer {\n  background: none;\n  border: 0;\n  color: #a93b2e;\n  cursor: pointer;\n  padding: 0 4px;\n}\n\n#resume {\n  margin-top: 18px;\n  color: #6b6259;\n  font-size: 13.5px;\n}\n",
-          },
-          {
-            path: "app.js",
-            content:
-              "const CLEF = 'courses';\n\nconst charger = () => {\n  try {\n    return JSON.parse(localStorage.getItem(CLEF)) ?? [];\n  } catch {\n    return [];\n  }\n};\n\nlet articles = charger();\nif (articles.length === 0) {\n  articles = [\n    { nom: 'Pommes', quantite: 6, rayon: 'Fruits et légumes', pris: false },\n    { nom: 'Lait', quantite: 2, rayon: 'Frais', pris: true },\n    { nom: 'Pâtes', quantite: 3, rayon: 'Épicerie', pris: false },\n  ];\n}\n\nconst enregistrer = () => {\n  try {\n    localStorage.setItem(CLEF, JSON.stringify(articles));\n  } catch {\n    /* navigation privée : la liste vit le temps de la session */\n  }\n};\n\nfunction afficher() {\n  const liste = document.getElementById('liste');\n  liste.textContent = '';\n\n  articles.forEach((article, index) => {\n    const li = document.createElement('li');\n    if (article.pris) li.className = 'pris';\n\n    const case_ = document.createElement('input');\n    case_.type = 'checkbox';\n    case_.checked = article.pris;\n    case_.onchange = () => {\n      article.pris = case_.checked;\n      enregistrer();\n      afficher();\n    };\n\n    const nom = document.createElement('span');\n    nom.className = 'nom';\n    nom.textContent = `${article.nom} × ${article.quantite}`;\n\n    const rayon = document.createElement('span');\n    rayon.className = 'rayon';\n    rayon.textContent = article.rayon;\n\n    const retirer = document.createElement('button');\n    retirer.className = 'retirer';\n    retirer.textContent = '✕';\n    retirer.title = 'Retirer';\n    retirer.onclick = () => {\n      articles.splice(index, 1);\n      enregistrer();\n      afficher();\n    };\n\n    li.append(case_, nom, rayon, retirer);\n    liste.append(li);\n  });\n\n  const restants = articles.filter((a) => !a.pris).length;\n  document.getElementById('resume').textContent =\n    `${articles.length} article(s) · ${restants} à prendre`;\n}\n\ndocument.getElementById('ajout').addEventListener('submit', (evenement) => {\n  evenement.preventDefault();\n  const nom = document.getElementById('article');\n  articles.push({\n    nom: nom.value.trim(),\n    quantite: Number(document.getElementById('quantite').value) || 1,\n    rayon: document.getElementById('rayon').value,\n    pris: false,\n  });\n  nom.value = '';\n  enregistrer();\n  afficher();\n});\n\nafficher();\n",
-          },
-        ],
-      };
-
-      let projet = structuredClone(EXEMPLE);
-      let choisi = 0;
-      let controleur = null;
-      let occupe = false;
-
-      /* --------------------------- conversation --------------------------- */
-      function tour(qui, texte) {
-        const bloc = document.createElement("div");
-        bloc.className = "turn" + (qui === "vous" ? " mine" : "");
-
-        const etiquette = document.createElement("div");
-        etiquette.className = "who";
-        etiquette.textContent = qui;
-
-        const bulle = document.createElement("div");
-        bulle.className = "bubble";
-        if (texte) {
-          const p = document.createElement("p");
-          p.textContent = texte;
-          bulle.append(p);
-        }
-
-        bloc.append(etiquette, bulle);
-        $("thread").append(bloc);
-        $("thread").scrollTop = $("thread").scrollHeight;
-        return bulle;
-      }
-
-      function ligne(bulle, texte, genre) {
-        let zone = bulle.querySelector(".progress");
-        if (!zone) {
-          zone = document.createElement("div");
-          zone.className = "progress";
-          bulle.append(zone);
-        }
-        const div = document.createElement("div");
-        if (genre) div.className = "p-" + genre;
-        div.textContent = texte;
-        zone.append(div);
-        zone.scrollTop = zone.scrollHeight;
-
-        const journal = document.createElement("div");
-        journal.className = genre ? "p-" + genre : "";
-        journal.textContent = texte;
-        $("log").append(journal);
-
-        $("thread").scrollTop = $("thread").scrollHeight;
-      }
-
-      function dire(bulle, texte) {
-        const p = document.createElement("p");
-        p.textContent = texte;
-        bulle.prepend(p);
-        $("thread").scrollTop = $("thread").scrollHeight;
-      }
-
-      function listerFichiers(bulle) {
-        const ul = document.createElement("ul");
-        ul.className = "filelist";
-        projet.files.forEach((fichier, index) => {
-          const li = document.createElement("li");
-          const bouton = document.createElement("button");
-          bouton.type = "button";
-          bouton.textContent = fichier.path;
-          bouton.onclick = () => {
-            choisi = index;
-            onglet("files");
-            rendreFichiers();
+        Array.prototype.forEach.call($('exemples').querySelectorAll('button'), function (bouton) {
+          bouton.onclick = function () {
+            $('demande').value = bouton.dataset.ex;
+            creer(bouton.dataset.ex);
           };
-          li.append(bouton);
-          ul.append(li);
         });
-        bulle.append(ul);
-      }
 
-      /* ------------------------------ onglets ------------------------------ */
-      function onglet(nom) {
-        for (const cle of ["preview", "files", "log"]) {
-          $("tab-" + cle).setAttribute("aria-selected", String(cle === nom));
-          $(cle + "-pane").hidden = cle !== nom;
-        }
-      }
-      $("tab-preview").onclick = () => onglet("preview");
-      $("tab-files").onclick = () => onglet("files");
-      $("tab-log").onclick = () => onglet("log");
-
-      /* ------------------------------- aperçu ------------------------------ */
-      function assembler() {
-        const parChemin = new Map(
-          projet.files.map((f) => [f.path.replace(/^\.\//, ""), f.content ?? ""]),
-        );
-        const entree =
-          parChemin.get("index.html") ??
-          [...parChemin.entries()].find(([chemin]) => chemin.endsWith(".html"))?.[1];
-        if (entree === undefined) return null;
-
-        let html = entree;
-        html = html.replace(
-          /<link\b[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>/gi,
-          (balise, href) => {
-            const css = parChemin.get(href.replace(/^\.\//, ""));
-            return css === undefined ? balise : "<style>\n" + css + "\n</style>";
-          },
-        );
-        html = html.replace(
-          /<script\b[^>]*src=["']([^"']+)["'][^>]*><\/script>/gi,
-          (balise, src) => {
-            const js = parChemin.get(src.replace(/^\.\//, ""));
-            return js === undefined ? balise : "<script>\n" + js + "\n<\/script>";
-          },
-        );
-        return html;
-      }
-
-      function rendreApercu() {
-        const html = assembler();
-        const cadre = $("preview");
-        if (html === null) {
-          cadre.srcdoc =
-            '<!doctype html><meta charset="utf-8"><body style="margin:0;display:grid;place-content:center;height:100vh;font:15px/1.6 system-ui;color:#8f8578;text-align:center;padding:24px"><p>Ce projet n\'a pas de page index.html.<br>Ouvrez l\'onglet Fichiers pour lire le code.</p></body>';
-          $("chrome-label").textContent = "aucun aperçu";
-          return;
-        }
-        cadre.srcdoc = html;
-        $("chrome-label").textContent = (projet.example ? "exemple · " : "") + "index.html";
-      }
-
-      $("reload").onclick = rendreApercu;
-
-      /* ------------------------------ fichiers ----------------------------- */
-      function rendreFichiers() {
-        const arbre = $("tree");
-        arbre.textContent = "";
-        projet.files.forEach((fichier, index) => {
-          const bouton = document.createElement("button");
-          bouton.type = "button";
-          bouton.textContent = fichier.content === undefined ? fichier.path + " …" : fichier.path;
-          bouton.setAttribute("aria-current", String(index === choisi));
-          bouton.onclick = () => {
-            choisi = index;
-            rendreFichiers();
+        /* ------------------------------------------------------ largeurs */
+        Array.prototype.forEach.call($('largeurs').querySelectorAll('button'), function (bouton) {
+          bouton.onclick = function () {
+            Array.prototype.forEach.call($('largeurs').querySelectorAll('button'), function (b) {
+              b.setAttribute('aria-pressed', String(b === bouton));
+            });
+            $('apercu').style.maxWidth = bouton.dataset.l;
           };
-          arbre.append(bouton);
         });
 
-        const fichier = projet.files[choisi];
-        $("file-path").textContent = fichier?.path ?? "—";
-        $("file-meta").textContent = fichier?.content
-          ? fichier.content.split("\n").length + " lignes · " + fichier.content.length + " o"
-          : fichier
-            ? "en cours d'écriture"
-            : "";
-        $("file-body").textContent = fichier?.content ?? "";
-      }
+        /* -------------------------------------------------------- sorties */
+        $('ouvrir').onclick = function () {
+          if (!site) return;
+          var page = window.open('', '_blank');
+          if (page) { page.document.write(assembler(site.fichiers)); page.document.close(); }
+        };
 
-      /* --------------------------- outils modèle --------------------------- */
-      function extraireCode(texte) {
-        const blocs = [...texte.matchAll(/```[^\n`]*\n([\s\S]*?)```/g)].map((m) => m[1] ?? "");
-        if (blocs.length > 0) return blocs.reduce((a, b) => (b.length > a.length ? b : a));
-        return texte.trim() + "\n";
-      }
-
-      function extraireJson(texte) {
-        const sansCloture = texte.replace(/```(?:json)?\s*\n?/gi, "").replace(/```/g, "");
-        const debut = sansCloture.search(/[[{]/);
-        if (debut === -1) throw new Error("le modèle n'a pas renvoyé de JSON");
-
-        const ouvrant = sansCloture[debut];
-        const fermant = ouvrant === "{" ? "}" : "]";
-        let profondeur = 0;
-        let dansTexte = false;
-        let echappe = false;
-
-        for (let i = debut; i < sansCloture.length; i++) {
-          const c = sansCloture[i];
-          if (dansTexte) {
-            if (echappe) echappe = false;
-            else if (c === "\\") echappe = true;
-            else if (c === '"') dansTexte = false;
-            continue;
-          }
-          if (c === '"') dansTexte = true;
-          else if (c === ouvrant) profondeur++;
-          else if (c === fermant && --profondeur === 0) {
-            const tranche = sansCloture.slice(debut, i + 1);
-            try {
-              return JSON.parse(tranche);
-            } catch {
-              return JSON.parse(tranche.replace(/,(\s*[}\]])/g, "$1"));
-            }
-          }
-        }
-        throw new Error("le JSON renvoyé est incomplet");
-      }
-
-      function vagues(fichiers) {
-        const parChemin = new Map(fichiers.map((f) => [f.path, f]));
-        const restants = new Map(
-          fichiers.map((f) => [f.path, new Set((f.dependsOn ?? []).filter((d) => parChemin.has(d)))]),
-        );
-        const faits = new Set();
-        const sortie = [];
-
-        while (restants.size > 0) {
-          const prets = [];
-          for (const [chemin, deps] of restants) {
-            if ([...deps].every((d) => faits.has(d))) prets.push(parChemin.get(chemin));
-          }
-          if (prets.length === 0) {
-            sortie.push([...restants.keys()].map((c) => parChemin.get(c)));
-            break;
-          }
-          sortie.push(prets);
-          for (const f of prets) {
-            faits.add(f.path);
-            restants.delete(f.path);
-          }
-        }
-        return sortie;
-      }
-
-      async function demander(prompt) {
-        const { fournisseur, cle, modele } = reglagesActuels();
-        const config = FOURNISSEURS[fournisseur];
-        const texte = await config.appel({
-          prompt,
-          cle,
-          modele: modele || config.modele,
-          signal: controleur.signal,
-        });
-        if (!texte.trim()) throw new Error("le modèle a renvoyé une réponse vide");
-        return texte;
-      }
-
-      /* ------------------------------ prompts ------------------------------ */
-      const REGLES = `CONTRAINTES DE L'ATELIER
-- Application web autonome en HTML, CSS et JavaScript natifs. Aucun outil de build, aucun paquet a installer.
-- AUCUNE ressource externe : ni CDN, ni police distante, ni appel reseau. Tout vit dans les fichiers.
-- Le point d'entree est index.html ; il reference styles.css et app.js par des chemins relatifs simples.
-- Interface en francais, soignee, utilisable au clavier, lisible sur mobile.
-- Si des donnees doivent survivre au rechargement, utilise localStorage dans un try/catch.
-- L'application s'ouvre sur un etat realiste (quelques donnees d'exemple), jamais sur un ecran vide.`;
-
-      const promptPlan = (demande) => `Tu es un architecte logiciel. Etablis le plan d'une application web a partir de cette demande :
-"""
-${demande}
-"""
-
-${REGLES}
-
-Entre 2 et 4 fichiers. "dependsOn" ne contient que des chemins de la liste.
-
-Reponds UNIQUEMENT par ce JSON, sans texte autour :
-{"name": string, "summary": string,
- "files": [{"path": string, "purpose": string, "dependsOn": [string]}]}`;
-
-      const promptFichier = (fichier, contexte) => `Tu ecris le contenu complet d'UN SEUL fichier.
-
-PROJET : ${projet.name} — ${projet.summary}
-ARBORESCENCE : ${projet.files.map((f) => f.path).join(", ")}
-
-FICHIER A ECRIRE : ${fichier.path}
-ROLE : ${fichier.purpose}
-
-${REGLES}
-
-${contexte || "Aucun fichier de contexte : celui-ci vient en premier."}
-
-Renvoie le fichier ENTIER, pret a l'emploi : jamais de "...", jamais de "TODO".
-Ta reponse contient UNIQUEMENT le contenu du fichier, dans un seul bloc de code.`;
-
-      const promptChangement = (demande) => `Tu modifies une application web existante.
-
-PROJET : ${projet.name} — ${projet.summary}
-
-FICHIERS ACTUELS :
-${projet.files.map((f) => `--- ${f.path} ---\n${(f.content ?? "").slice(0, 9000)}`).join("\n\n")}
-
-MODIFICATION DEMANDEE :
-"""
-${demande}
-"""
-
-Indique quels fichiers reecrire, du plus petit ensemble suffisant. Un fichier nouveau est permis.
-
-Reponds UNIQUEMENT par ce JSON, sans texte autour :
-{"summary": string, "files": [{"path": string, "purpose": string}]}`;
-
-      const promptReecriture = (fichier, demande) => `Tu reecris UN SEUL fichier d'une application web existante.
-
-PROJET : ${projet.name}
-FICHIER : ${fichier.path}
-CE QU'IL FAUT Y FAIRE : ${fichier.purpose}
-
-MODIFICATION GLOBALE DEMANDEE :
-"""
-${demande}
-"""
-
-${REGLES}
-
-CONTENU ACTUEL :
-\`\`\`
-${(projet.files.find((f) => f.path === fichier.path)?.content ?? "(ce fichier est nouveau)").slice(0, 16000)}
-\`\`\`
-
-AUTRES FICHIERS DU PROJET :
-${projet.files
-  .filter((f) => f.path !== fichier.path)
-  .map((f) => `--- ${f.path} ---\n${(f.content ?? "").slice(0, 5000)}`)
-  .join("\n\n")}
-
-Renvoie le fichier ENTIER apres modification, en preservant tout ce qui n'est pas concerne.
-Ta reponse contient UNIQUEMENT le contenu du fichier, dans un seul bloc de code.`;
-
-      /* ------------------------------- moteur ------------------------------ */
-      function occuper(actif, texte) {
-        occupe = actif;
-        $("send").disabled = actif || !pret();
-        $("stop").hidden = !actif;
-        $("dot").className = "dot " + (actif ? "busy" : pret() ? "live" : "");
-        $("state-text").textContent = texte;
-      }
-
-      async function ecrire(bulle, fichiers, prompteur) {
-        const ordre = vagues(fichiers);
-        const ecrits = new Map(projet.files.filter((f) => f.content).map((f) => [f.path, f.content]));
-        let rang = 0;
-
-        for (const [numero, vague] of ordre.entries()) {
-          if (ordre.length > 1) {
-            ligne(bulle, `vague ${numero + 1}/${ordre.length} — ${vague.length} fichier(s) en parallèle`, "step");
-          }
-
-          await Promise.all(
-            vague.map(async (fichier) => {
-              const position = ++rang;
-              ligne(bulle, `… ${fichier.path} (${position}/${fichiers.length})`);
-              const depart = Date.now();
-
-              const contexte = (fichier.dependsOn ?? [])
-                .map((dep) => (ecrits.has(dep) ? `--- ${dep} ---\n${ecrits.get(dep).slice(0, 5000)}` : null))
-                .filter(Boolean)
-                .join("\n\n");
-
-              const texte = await demander(
-                prompteur(fichier, contexte ? `FICHIERS DEJA ECRITS :\n\n${contexte}` : ""),
-              );
-              const contenu = extraireCode(texte);
-              ecrits.set(fichier.path, contenu);
-
-              const index = projet.files.findIndex((f) => f.path === fichier.path);
-              if (index >= 0) projet.files[index].content = contenu;
-              else projet.files.push({ path: fichier.path, content: contenu });
-
-              rendreFichiers();
-              ligne(
-                bulle,
-                `✔ ${fichier.path} — ${contenu.length} o en ${((Date.now() - depart) / 1000).toFixed(1)} s`,
-                "ok",
-              );
-            }),
+        $('copier').onclick = function () {
+          if (!site) return;
+          navigator.clipboard.writeText(site.fichiers[choisi] || '').then(
+            function () { $('copier').textContent = 'Copié'; setTimeout(function () { $('copier').textContent = 'Copier'; }, 1500); },
+            function () { $('copier').textContent = 'Refusé'; setTimeout(function () { $('copier').textContent = 'Copier'; }, 1800); },
           );
-        }
-      }
-
-      async function construire(demande) {
-        const bulle = tour("forge");
-        ligne(bulle, "conception de l'architecture", "step");
-
-        const plan = extraireJson(await demander(promptPlan(demande)));
-        const fichiers = (plan.files ?? [])
-          .filter((f) => f && typeof f.path === "string")
-          .map((f) => ({
-            path: f.path.replace(/^[.\/]+/, ""),
-            purpose: f.purpose ?? "",
-            dependsOn: Array.isArray(f.dependsOn) ? f.dependsOn : [],
-          }));
-        if (fichiers.length === 0) throw new Error("le plan ne contient aucun fichier");
-
-        projet = {
-          name: plan.name ?? "Application",
-          summary: plan.summary ?? demande.slice(0, 160),
-          example: false,
-          files: fichiers.map((f) => ({ ...f, content: undefined })),
         };
-        choisi = 0;
-        rendreFichiers();
-        ligne(bulle, `${projet.name} · ${fichiers.length} fichiers`, "step");
 
-        await ecrire(bulle, fichiers, promptFichier);
-
-        rendreApercu();
-        onglet("preview");
-        dire(bulle, `${projet.name} est prête. ${projet.summary}`);
-        listerFichiers(bulle);
-      }
-
-      async function modifier(demande) {
-        const bulle = tour("forge");
-        ligne(bulle, "analyse du projet", "step");
-
-        const plan = extraireJson(await demander(promptChangement(demande)));
-        const cibles = (plan.files ?? [])
-          .filter((f) => f && typeof f.path === "string")
-          .map((f) => ({ path: f.path.replace(/^[.\/]+/, ""), purpose: f.purpose ?? demande, dependsOn: [] }))
-          .slice(0, 6);
-        if (cibles.length === 0) throw new Error("aucun fichier à modifier n'a été identifié");
-
-        ligne(bulle, `${cibles.length} fichier(s) à reprendre`, "step");
-        await ecrire(bulle, cibles, (fichier) => promptReecriture(fichier, demande));
-
-        rendreApercu();
-        onglet("preview");
-        dire(bulle, plan.summary ?? "Modification appliquée.");
-        listerFichiers(bulle);
-      }
-
-      async function envoyer() {
-        if (occupe) return;
-        if (!pret()) {
-          $("settings").open = true;
-          $("cle").focus();
-          return;
-        }
-        const demande = $("input").value.trim();
-        if (demande.length < 6) return;
-
-        ecrireReglages(reglagesActuels());
-        tour("vous", demande);
-        $("input").value = "";
-        $("seeds").hidden = true;
-        $("settings").open = false;
-
-        controleur = new AbortController();
-        const neuf = projet.example;
-        occuper(true, neuf ? "construction…" : "modification…");
-
-        try {
-          if (neuf) await construire(demande);
-          else await modifier(demande);
-          $("send").textContent = "Modifier";
-          $("hint").textContent = "Demandez une modification : elle sera appliquée à l'application.";
-        } catch (erreur) {
-          const bulle = tour("forge");
-          if (erreur?.name === "AbortError") {
-            dire(bulle, "Arrêté.");
-          } else if (erreur?.statut === 401 || erreur?.statut === 403) {
-            dire(bulle, "Clé refusée par le fournisseur. Vérifiez-la dans « Votre moteur d'IA ».");
-            $("settings").open = true;
-          } else if (erreur?.statut === 429) {
-            dire(bulle, "Le fournisseur limite le débit. Attendez une minute, puis réessayez.");
-          } else if (erreur?.statut === 404) {
-            dire(bulle, "Modèle introuvable chez ce fournisseur. Corrigez le nom du modèle dans les réglages.");
-            $("settings").open = true;
-          } else if (erreur instanceof TypeError) {
-            dire(
-              bulle,
-              "Le navigateur n'a pas pu joindre le fournisseur (blocage CORS ou réseau). Essayez un autre fournisseur, ou installez l'édition complète de Forge — elle n'a pas cette contrainte.",
-            );
-          } else {
-            dire(bulle, "Échec : " + (erreur?.message ?? String(erreur)));
+        /* ----------------- archive ZIP, écrite à la main (sans dépendance) */
+        var TABLE = (function () {
+          var t = new Uint32Array(256);
+          for (var n = 0; n < 256; n++) {
+            var c = n;
+            for (var k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+            t[n] = c >>> 0;
           }
-        } finally {
-          controleur = null;
-          occuper(false, pret() ? "prêt" : "clé requise");
-        }
-      }
+          return t;
+        })();
 
-      /* ------------------------------- ZIP -------------------------------- */
-      const TABLE_CRC = (() => {
-        const table = new Uint32Array(256);
-        for (let n = 0; n < 256; n++) {
-          let c = n;
-          for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-          table[n] = c >>> 0;
-        }
-        return table;
-      })();
-
-      function crc32(octets) {
-        let c = 0xffffffff;
-        for (let i = 0; i < octets.length; i++) c = TABLE_CRC[(c ^ octets[i]) & 0xff] ^ (c >>> 8);
-        return (c ^ 0xffffffff) >>> 0;
-      }
-
-      /** Archive ZIP sans compression — assez pour du texte, et sans dépendance. */
-      function archiver(fichiers) {
-        const encodeur = new TextEncoder();
-        const morceaux = [];
-        const central = [];
-        let position = 0;
-
-        const maintenant = new Date();
-        const heure =
-          ((maintenant.getHours() << 11) |
-            (maintenant.getMinutes() << 5) |
-            Math.floor(maintenant.getSeconds() / 2)) &
-          0xffff;
-        const jour =
-          (((maintenant.getFullYear() - 1980) << 9) |
-            ((maintenant.getMonth() + 1) << 5) |
-            maintenant.getDate()) &
-          0xffff;
-
-        for (const fichier of fichiers) {
-          const nom = encodeur.encode(fichier.path);
-          const donnees = encodeur.encode(fichier.content ?? "");
-          const somme = crc32(donnees);
-
-          const local = new Uint8Array(30 + nom.length);
-          const vl = new DataView(local.buffer);
-          vl.setUint32(0, 0x04034b50, true);
-          vl.setUint16(4, 20, true);
-          vl.setUint16(6, 0x0800, true); // noms en UTF-8
-          vl.setUint16(8, 0, true); // methode : aucune compression
-          vl.setUint16(10, heure, true);
-          vl.setUint16(12, jour, true);
-          vl.setUint32(14, somme, true);
-          vl.setUint32(18, donnees.length, true);
-          vl.setUint32(22, donnees.length, true);
-          vl.setUint16(26, nom.length, true);
-          local.set(nom, 30);
-          morceaux.push(local, donnees);
-
-          const entree = new Uint8Array(46 + nom.length);
-          const ve = new DataView(entree.buffer);
-          ve.setUint32(0, 0x02014b50, true);
-          ve.setUint16(4, 20, true);
-          ve.setUint16(6, 20, true);
-          ve.setUint16(8, 0x0800, true);
-          ve.setUint16(10, 0, true);
-          ve.setUint16(12, heure, true);
-          ve.setUint16(14, jour, true);
-          ve.setUint32(16, somme, true);
-          ve.setUint32(20, donnees.length, true);
-          ve.setUint32(24, donnees.length, true);
-          ve.setUint16(28, nom.length, true);
-          ve.setUint32(42, position, true);
-          entree.set(nom, 46);
-          central.push(entree);
-
-          position += local.length + donnees.length;
+        function crc32(octets) {
+          var c = 0xffffffff;
+          for (var i = 0; i < octets.length; i++) c = TABLE[(c ^ octets[i]) & 0xff] ^ (c >>> 8);
+          return (c ^ 0xffffffff) >>> 0;
         }
 
-        const tailleCentral = central.reduce((total, e) => total + e.length, 0);
-        const fin = new Uint8Array(22);
-        const vf = new DataView(fin.buffer);
-        vf.setUint32(0, 0x06054b50, true);
-        vf.setUint16(8, fichiers.length, true);
-        vf.setUint16(10, fichiers.length, true);
-        vf.setUint32(12, tailleCentral, true);
-        vf.setUint32(16, position, true);
+        function archiver(fichiers) {
+          var encodeur = new TextEncoder();
+          var morceaux = [], central = [], position = 0;
+          var d = new Date();
+          var heure = ((d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2)) & 0xffff;
+          var jour = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xffff;
 
-        return new Blob([...morceaux, ...central, fin], { type: "application/zip" });
-      }
+          Object.keys(fichiers).forEach(function (chemin) {
+            var nom = encodeur.encode(chemin);
+            var donnees = encodeur.encode(fichiers[chemin]);
+            var somme = crc32(donnees);
 
-      /* ------------------------------ actions ------------------------------ */
-      $("send").onclick = envoyer;
-      $("stop").onclick = () => controleur?.abort();
-      $("input").addEventListener("keydown", (evenement) => {
-        if (evenement.key === "Enter" && !evenement.shiftKey) {
-          evenement.preventDefault();
-          envoyer();
+            var local = new Uint8Array(30 + nom.length);
+            var vl = new DataView(local.buffer);
+            vl.setUint32(0, 0x04034b50, true); vl.setUint16(4, 20, true); vl.setUint16(6, 0x0800, true);
+            vl.setUint16(8, 0, true); vl.setUint16(10, heure, true); vl.setUint16(12, jour, true);
+            vl.setUint32(14, somme, true); vl.setUint32(18, donnees.length, true);
+            vl.setUint32(22, donnees.length, true); vl.setUint16(26, nom.length, true);
+            local.set(nom, 30);
+            morceaux.push(local, donnees);
+
+            var e = new Uint8Array(46 + nom.length);
+            var ve = new DataView(e.buffer);
+            ve.setUint32(0, 0x02014b50, true); ve.setUint16(4, 20, true); ve.setUint16(6, 20, true);
+            ve.setUint16(8, 0x0800, true); ve.setUint16(10, 0, true); ve.setUint16(12, heure, true);
+            ve.setUint16(14, jour, true); ve.setUint32(16, somme, true);
+            ve.setUint32(20, donnees.length, true); ve.setUint32(24, donnees.length, true);
+            ve.setUint16(28, nom.length, true); ve.setUint32(42, position, true);
+            e.set(nom, 46);
+            central.push(e);
+            position += local.length + donnees.length;
+          });
+
+          var taille = central.reduce(function (t, c) { return t + c.length; }, 0);
+          var fin = new Uint8Array(22);
+          var vf = new DataView(fin.buffer);
+          vf.setUint32(0, 0x06054b50, true);
+          vf.setUint16(8, central.length, true); vf.setUint16(10, central.length, true);
+          vf.setUint32(12, taille, true); vf.setUint32(16, position, true);
+
+          return new Blob(morceaux.concat(central, [fin]), { type: 'application/zip' });
         }
-      });
-      for (const bouton of $("seeds").querySelectorAll("button")) {
-        bouton.onclick = () => {
-          $("input").value = bouton.dataset.seed;
-          $("input").focus();
+
+        $('telecharger').onclick = function () {
+          if (!site) return;
+          var url = URL.createObjectURL(archiver(site.fichiers));
+          var lien = document.createElement('a');
+          lien.href = url;
+          lien.download = Moteur.identifiant(site.spec.nom) + '.zip';
+          document.body.appendChild(lien);
+          lien.click();
+          lien.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
         };
-      }
 
-      $("copy").onclick = async () => {
-        const fichier = projet.files[choisi];
-        if (!fichier?.content) return;
-        try {
-          await navigator.clipboard.writeText(fichier.content);
-          $("copy").textContent = "Copié";
-        } catch {
-          $("copy").textContent = "Copie refusée";
-        }
-        setTimeout(() => ($("copy").textContent = "Copier"), 1600);
-      };
-
-      $("download").onclick = () => {
-        const nom =
-          (projet.name || "application")
-            .normalize("NFD")
-            .replace(/[̀-ͯ]/g, "")
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "") || "application";
-
-        const url = URL.createObjectURL(archiver(projet.files.filter((f) => f.content !== undefined)));
-        const lien = document.createElement("a");
-        lien.href = url;
-        lien.download = nom + ".zip";
-        document.body.append(lien);
-        lien.click();
-        lien.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 4000);
-      };
-
-      /* ----------------------------- démarrage ----------------------------- */
-      function majFournisseur() {
-        const config = FOURNISSEURS[$("fournisseur").value];
-        $("cle").disabled = Boolean(config.sansCle);
-        $("cle").placeholder = config.sansCle ? "aucune clé nécessaire" : "collez votre clé";
-        $("key-note").textContent = "";
-        $("key-note").append(document.createTextNode(config.aide + " "));
-        const lien = document.createElement("a");
-        lien.href = config.lien;
-        lien.target = "_blank";
-        lien.rel = "noopener";
-        lien.textContent = "Ouvrir";
-        $("key-note").append(lien);
-        occuper(false, pret() ? "prêt" : "clé requise");
-      }
-
-      for (const [cle, config] of Object.entries(FOURNISSEURS)) {
-        const option = document.createElement("option");
-        option.value = cle;
-        option.textContent = config.nom;
-        $("fournisseur").append(option);
-      }
-
-      const memorise = lireReglages();
-      $("fournisseur").value = memorise.fournisseur ?? "openai";
-      $("cle").value = memorise.cle ?? "";
-      $("modele").value = memorise.modele ?? FOURNISSEURS[$("fournisseur").value].modele;
-
-      $("fournisseur").onchange = () => {
-        $("modele").value = FOURNISSEURS[$("fournisseur").value].modele;
-        majFournisseur();
-        ecrireReglages(reglagesActuels());
-      };
-      $("cle").oninput = () => {
-        occuper(false, pret() ? "prêt" : "clé requise");
-        ecrireReglages(reglagesActuels());
-      };
-      $("modele").oninput = () => ecrireReglages(reglagesActuels());
-
-      majFournisseur();
-      if (pret()) $("settings").open = false;
-
-      rendreFichiers();
-      rendreApercu();
-
-      const accueil = tour("forge");
-      dire(
-        accueil,
-        "Décrivez l'application que vous voulez. Je conçois le plan, j'écris chaque fichier, et elle se met à tourner dans l'aperçu — ensuite vous me demandez des modifications.",
-      );
-      const note = document.createElement("p");
-      note.style.color = "var(--ink-faint)";
-      note.style.fontSize = "13px";
-      note.textContent =
-        "À droite : une liste de courses d'exemple, déjà fonctionnelle. Essayez-la en attendant.";
-      accueil.append(note);
+        /* ------------------------------------------------------ démarrage */
+        var accueil = "Un site chaleureux pour mon restaurant Le Tilleul à Annecy, avec la carte, les horaires et un formulaire de contact";
+        $('demande').value = accueil;
+        creer(accueil);
+      })();
     </script>
   </body>
 </html>

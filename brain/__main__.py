@@ -168,6 +168,20 @@ def _atelier(args: argparse.Namespace) -> int:
     return demarrer(args.projet, args.faire)
 
 
+def _site(args: argparse.Namespace) -> int:
+    """Comprend une phrase et ecrit un site web complet, sans aucune IA."""
+    from .intent.site import ecrire, resume
+
+    demande = " ".join(args.demande).strip()
+    spec, fichiers = ecrire(demande, args.sortie)
+    print(resume(spec))
+    print(f"\n{len(fichiers)} fichiers ecrits dans {args.sortie}")
+    for chemin in fichiers:
+        print(f"  {chemin}")
+    print(f"\n  Ouvrir : {Path(args.sortie) / 'index.html'}")
+    return 0
+
+
 def _coder(args: argparse.Namespace) -> int:
     """Comprend une phrase francaise et ecrit l'application correspondante."""
     from .intent import analyser, generer
@@ -260,6 +274,10 @@ def main(argv: list[str] | None = None) -> int:
         help="instructions a executer sans mode interactif (utile en script)",
     )
 
+    p = sous.add_parser("site", help="ecrit un site web complet a partir d'une phrase")
+    p.add_argument("demande", nargs="+")
+    p.add_argument("--sortie", default="./site")
+
     p = sous.add_parser(
         "coder",
         help="comprend une phrase francaise et ecrit l'application (sans modele)",
@@ -285,6 +303,7 @@ def main(argv: list[str] | None = None) -> int:
         "servir": _servir,
         "coder": _coder,
         "atelier": _atelier,
+        "site": _site,
     }[args.commande](args)
 
 

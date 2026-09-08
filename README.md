@@ -1,14 +1,17 @@
 # Forge
 
-### ▶ [Ouvrir l'application](https://sanctimaps-gif.github.io/Applications-qui-cr-e-des-applications-/)
+### ▶ [Créer un site en une phrase](https://sanctimaps-gif.github.io/Applications-qui-cr-e-des-applications-/)
 
-Rien à installer : la page s'ouvre dans votre navigateur, vous décrivez une application, elle est
-écrite sous vos yeux et se met à tourner. Il vous faut seulement une clé d'API (OpenAI, Anthropic,
-Google, Groq, Mistral, DeepSeek, OpenRouter) — ou rien du tout avec Ollama en local. La clé reste
-dans votre navigateur.
+Décrivez votre site — « un site chaleureux pour mon restaurant Le Tilleul à Annecy, avec la carte,
+les horaires et un formulaire de contact » — et il s'écrit sous vos yeux : navigation, sections,
+galerie, tarifs, FAQ, formulaire validé, thème clair et sombre. Vous le voyez tourner, vous le
+téléchargez en `.zip`, vous l'hébergez où vous voulez.
 
-Cette page est l'**édition navigateur**. L'édition complète, décrite ci-dessous, s'installe sur
-votre machine et va beaucoup plus loin.
+**Aucune intelligence artificielle n'est appelée** : ni la mienne, ni celle d'un autre. Pas de clé,
+pas de compte, pas de quota, aucune donnée envoyée nulle part. Le moteur
+([`web/moteur.js`](web/moteur.js)) est un fichier lisible qui tourne entièrement dans votre
+navigateur, et le site produit est lui aussi autonome — aucune police distante, aucun script tiers,
+aucune image chargée depuis l'extérieur.
 
 ---
 
@@ -104,17 +107,22 @@ l'échelle, que seul un centre de calcul procure.
 
 ## Les deux éditions
 
-| | Édition navigateur | Édition complète |
-|---|---|---|
-| Accès | [un lien](https://sanctimaps-gif.github.io/Applications-qui-cr-e-des-applications-/), rien à installer | `npm install` puis `forge serve` |
-| Ce qu'elle construit | applications web autonomes (HTML/CSS/JS) | n'importe quelle pile : Node, Python, Go, Rust, .NET… |
-| Exécute et teste le code | non | oui, et corrige ses propres erreurs |
-| Publie sur GitHub | non | dépôt, branche, pull request, release, Pages |
-| Fournisseurs | 8, votre clé dans le navigateur | 22, dont 4 entièrement locaux |
-| Limite de création | celle de votre fournisseur | **aucune** |
+| | Générateur de sites (le lien) | Forge complet | forge-brain |
+|---|---|---|---|
+| Accès | un lien, rien à installer | `npm install` puis `forge serve` | `pip install -r requirements.txt` |
+| IA utilisée | **aucune** | celle de votre choix, ou la vôtre | **la vôtre, entraînée par vous** |
+| Clé nécessaire | non | selon le fournisseur | non |
+| Ce qu'il produit | sites web complets | n'importe quelle pile | applications, API, outils terminal, sites |
+| Limite de création | **aucune** | **aucune** | **aucune** |
 
-Le fichier de l'édition navigateur est [`index.html`](index.html) : un seul fichier, sans
-dépendance, qui fonctionne aussi hors ligne si vous le téléchargez et l'ouvrez directement.
+Le générateur de sites tient dans [`index.html`](index.html) et [`web/moteur.js`](web/moteur.js) :
+deux fichiers sans dépendance, qui fonctionnent aussi hors ligne une fois téléchargés.
+
+En ligne de commande, le même moteur :
+
+```bash
+python3 -m brain site "Un site pour ma boulangerie Le Fournil à Lyon, avec les produits et les horaires" --sortie ./mon-site
+```
 
 ## Installation
 
