@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Forge — créez votre site en une phrase</title>
+    <title>Forge — un site ou une application, en une phrase</title>
     <meta
       name="description"
-      content="Décrivez votre site : Forge l'écrit entièrement, sous vos yeux. Aucune IA extérieure, aucune clé, aucun compte. Tout se passe dans votre navigateur."
+      content="Décrivez un site ou une application : Forge l'écrit entièrement, sous vos yeux — logique métier, tests compris. Aucune IA extérieure, aucune clé, aucun compte. Tout se passe dans votre navigateur."
     />
-    <meta property="og:title" content="Forge — créez votre site en une phrase" />
-    <meta property="og:description" content="Un générateur de sites qui n'appelle aucune IA. Tout tourne chez vous." />
+    <meta property="og:title" content="Forge — un site ou une application, en une phrase" />
+    <meta property="og:description" content="Un générateur de sites et de vraies applications qui n'appelle aucune IA. Tout tourne chez vous." />
     <style>
       :root {
         --papier: #f5f2ed;
@@ -97,6 +97,14 @@
         background: var(--surface); color: inherit; font: 15px/1.55 var(--ui);
       }
       :focus-visible { outline: 2px solid var(--argile); outline-offset: 1px; }
+
+      .genre { display: flex; gap: 0; border: 1px solid var(--trait); border-radius: 9px; overflow: hidden; }
+      .genre button {
+        flex: 1; font: 500 13px var(--ui); background: var(--surface); color: var(--encre-douce);
+        border: 0; border-right: 1px solid var(--trait); padding: 8px 6px; cursor: pointer;
+      }
+      .genre button:last-child { border-right: 0; }
+      .genre button[aria-pressed="true"] { background: var(--argile); color: #fff; }
 
       .exemples { display: flex; flex-wrap: wrap; gap: 6px; }
       .exemples button {
@@ -211,14 +219,14 @@
     <div class="app">
       <div class="barre">
         <h1 class="marque">For<em>ge</em></h1>
-        <span class="note">décrivez votre site — il s'écrit sous vos yeux</span>
+        <span class="note">décrivez — le site ou l'application s'écrit sous vos yeux</span>
         <span class="sceau">aucune IA · aucune clé · rien ne sort de votre navigateur</span>
       </div>
 
       <div class="colonnes">
         <!-- ------------------------- commande ------------------------- -->
         <section class="commande">
-          <h2>Votre site</h2>
+          <h2>Votre projet</h2>
 
           <div class="exemples" id="exemples">
             <button type="button" data-ex="Un site chaleureux pour mon restaurant Le Tilleul à Annecy, avec la carte, les horaires et un formulaire de contact">Restaurant</button>
@@ -227,26 +235,44 @@
             <button type="button" data-ex="Site pour un artisan menuisier, avec réalisations, FAQ et demande de devis">Artisan</button>
             <button type="button" data-ex="Un site pour mon association de quartier, avec actualités, équipe et adhésion">Association</button>
             <button type="button" data-ex="Site moderne pour un gîte à la montagne, avec galerie, tarifs et disponibilités">Gîte</button>
+            <button type="button" data-ex="Une application de gestion de tâches avec un titre, une priorité, une date d'échéance et une case terminé, avec recherche et export CSV">App · tâches</button>
+            <button type="button" data-ex="Un suivi de dépenses avec un libellé, un montant, une catégorie et une date, avec recherche et statistiques">App · dépenses</button>
+            <button type="button" data-ex="Un carnet de contacts avec un nom, un email, un téléphone et des notes, avec recherche">App · contacts</button>
           </div>
 
-          <label class="visuellement-cache" for="demande">Décrivez votre site</label>
-          <textarea id="demande" spellcheck="false" placeholder="Ex. : un site chaleureux pour ma boulangerie à Lyon, avec les produits, les horaires et un formulaire de contact…"></textarea>
+          <div class="genre" id="genre" role="group" aria-label="Ce que vous voulez créer">
+            <button type="button" data-g="auto" aria-pressed="true">Auto</button>
+            <button type="button" data-g="site" aria-pressed="false">Site</button>
+            <button type="button" data-g="app" aria-pressed="false">Application</button>
+          </div>
 
-          <button class="principal" id="creer">Créer le site</button>
+          <label class="visuellement-cache" for="demande">Décrivez ce que vous voulez</label>
+          <textarea id="demande" spellcheck="false" placeholder="Ex. : un site chaleureux pour ma boulangerie à Lyon, avec les produits et les horaires… — ou : une application de gestion de tâches avec un titre, une priorité et une date d'échéance…"></textarea>
+
+          <button class="principal" id="creer">Créer</button>
 
           <div class="compris" id="compris" hidden></div>
 
           <details class="explication">
             <summary>Comment ça marche, sans IA ?</summary>
             <p>
-              Votre phrase est analysée par des règles de grammaire explicites : l'activité, le nom,
-              la ville, les sections demandées, l'ambiance. Le site est ensuite assemblé à partir de
-              blocs éprouvés. C'est <strong>déterministe</strong> : la même phrase donne toujours
-              exactement le même site, correct par construction.
+              Votre phrase est analysée par des règles de grammaire explicites. Pour un
+              <strong>site</strong> : l'activité, le nom, la ville, les sections, l'ambiance. Pour une
+              <strong>application</strong> : l'objet manipulé, ses champs, le type de chacun, et les
+              fonctions attendues. Le projet est ensuite assemblé à partir de blocs éprouvés. C'est
+              <strong>déterministe</strong> : la même phrase donne toujours exactement le même
+              résultat, correct par construction.
             </p>
             <p>
-              Aucun modèle de langue n'est appelé, ici ni ailleurs. Le moteur
-              (<code>web/moteur.js</code>) est un fichier lisible que vous pouvez ouvrir.
+              Une application n'est pas une maquette : sa logique métier vit dans
+              <code>store.js</code>, séparée de l'affichage — validation, persistance, recherche,
+              tri, statistiques, export CSV — et le projet livré contient ses propres tests, que
+              vous pouvez lancer avec <code>npm test</code>.
+            </p>
+            <p>
+              Aucun modèle de langue n'est appelé, ici ni ailleurs. Les deux moteurs
+              (<code>web/moteur.js</code> et <code>web/moteur-app.js</code>) sont des fichiers
+              lisibles que vous pouvez ouvrir.
             </p>
           </details>
         </section>
@@ -273,12 +299,12 @@
                   <button type="button" data-l="390px" aria-pressed="false">Mobile</button>
                 </div>
               </div>
-              <iframe id="apercu" title="Aperçu du site généré" sandbox="allow-scripts allow-modals allow-forms allow-popups"></iframe>
+              <iframe id="apercu" title="Aperçu du projet généré" sandbox="allow-scripts allow-modals allow-forms allow-popups"></iframe>
             </div>
           </div>
 
           <div class="panneau" id="vue-fichiers" role="tabpanel" aria-labelledby="tab-fichiers" hidden>
-            <nav class="arbre" id="arbre" aria-label="Fichiers du site"></nav>
+            <nav class="arbre" id="arbre" aria-label="Fichiers du projet"></nav>
             <div class="code">
               <div class="code-barre">
                 <span class="chemin" id="chemin">—</span>
@@ -295,18 +321,25 @@
     <div class="apropos">
       <h3>Ce que vous venez d'utiliser</h3>
       <p>
-        Un générateur de sites qui n'appelle <strong>aucune intelligence artificielle</strong> :
-        ni la mienne, ni celle d'un autre. Pas de clé d'API, pas de compte, pas de quota, aucune
-        donnée envoyée nulle part. Le site produit est lui aussi autonome — aucune police distante,
-        aucun script tiers, aucune image chargée depuis l'extérieur.
+        Un générateur de sites <em>et de vraies applications</em> qui n'appelle
+        <strong>aucune intelligence artificielle</strong> : ni la mienne, ni celle d'un autre. Pas
+        de clé d'API, pas de compte, pas de quota, aucune donnée envoyée nulle part. Ce qui est
+        produit est lui aussi autonome — aucune police distante, aucun script tiers, aucune image
+        chargée depuis l'extérieur, aucune dépendance à installer.
       </p>
       <p>
-        Le même moteur s'utilise en ligne de commande, avec l'atelier qui modifie un site
-        existant (« ajoute une galerie », « passe en API », « teste », « annule ») :
+        Une application est livrée avec sa logique métier isolée dans <code>store.js</code> et sa
+        propre suite de tests : ouvrez <code>index.html</code> d'un double-clic, ou lancez
+        <code>npm test</code> pour vérifier que tout passe.
+      </p>
+      <p>
+        Le même moteur s'utilise en ligne de commande, avec l'atelier qui modifie un projet
+        existant (« ajoute une galerie », « ajoute un champ priorité », « passe en API »,
+        « teste », « annule ») :
       </p>
       <pre>git clone https://github.com/sanctimaps-gif/Applications-qui-cr-e-des-applications-.git
 cd Applications-qui-cr-e-des-applications-
-python3 -m brain atelier --projet ./mon-site</pre>
+python3 -m brain atelier --projet ./mon-projet</pre>
       <p style="margin-top: 12px">
         Code source :
         <a href="https://github.com/sanctimaps-gif/Applications-qui-cr-e-des-applications-" target="_blank" rel="noopener">github.com/sanctimaps-gif/Applications-qui-cr-e-des-applications-</a>
@@ -314,14 +347,26 @@ python3 -m brain atelier --projet ./mon-site</pre>
       </p>
     </div>
 
+    <script src="web/lexique.js"></script>
     <script src="web/moteur.js"></script>
+    <script src="web/moteur-app.js"></script>
     <script>
       (function () {
         'use strict';
         var $ = function (id) { return document.getElementById(id); };
 
-        var site = null;      // { fichiers: {...}, spec: {...} }
+        var site = null;      // { fichiers, spec, genre }
         var choisi = 'index.html';
+        var genre = 'auto';   // auto | site | app
+
+        /* Une phrase qui nomme des champs décrit une application ; une phrase
+           qui nomme un métier ou une vitrine décrit un site. */
+        function deviner(phrase) {
+          var plat = Moteur.normalise(phrase);
+          if (/\b(application|appli|logiciel|outil|gestion de|liste de|carnet de|suivi de|inventaire|tableau de bord)\b/.test(plat)) return 'app';
+          if (/\b(site|vitrine|page web|landing|presentation)\b/.test(plat)) return 'site';
+          return /\bavec\b.*\b(champ|titre|nom|prix|date|statut|montant|quantite)\b/.test(plat) ? 'app' : 'site';
+        }
 
         /* ------------------------------------------------------ onglets */
         function onglet(nom) {
@@ -337,14 +382,22 @@ python3 -m brain atelier --projet ./mon-site</pre>
         function assembler(fichiers) {
           var html = fichiers['index.html'];
           html = html.replace(/<link\b[^>]*href="styles\.css"[^>]*>/i, '<style>\n' + fichiers['styles.css'] + '\n</style>');
-          html = html.replace(/<script\b[^>]*src="script\.js"[^>]*><\/script>/i, '<script>\n' + fichiers['script.js'] + '\n<\/script>');
+          // L'aperçu n'a pas de serveur : les scripts du projet sont incorporés,
+          // dans leur ordre de déclaration.
+          ['store.js', 'ui.js', 'script.js'].forEach(function (nom) {
+            if (!fichiers[nom]) return;
+            // Le `<\/script>` doit rester échappé : écrit tel quel, il fermerait
+            // le bloc de script de CETTE page au lieu d'entrer dans la chaîne.
+            var motif = new RegExp('<script\\b[^>]*src="' + nom.replace('.', '\\.') + '"[^>]*><\\/script>', 'i');
+            html = html.replace(motif, '<script>\n' + fichiers[nom] + '\n<\/script>');
+          });
           return html;
         }
 
         function afficher() {
           if (!site) return;
           $('apercu').srcdoc = assembler(site.fichiers);
-          $('etiquette').textContent = site.spec.nom + ' · index.html';
+          $('etiquette').textContent = (site.spec.nom || site.spec.titre) + ' · index.html';
           rendreArbre();
         }
 
@@ -366,29 +419,52 @@ python3 -m brain atelier --projet ./mon-site</pre>
         }
 
         /* ------------------------------------------------- ce qui est compris */
-        function montrerCompris(spec) {
+        function echapper(t) {
+          return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function montrerCompris(spec, quoi) {
           var bloc = $('compris');
           bloc.hidden = false;
+          var jauge = '<div class="jauge"><i style="width:' + Math.round(spec.confiance * 100) + '%"></i></div>';
+
+          if (quoi === 'app') {
+            var champs = spec.champs
+              .map(function (c) { return '<span class="puce">' + echapper(c.libelle) + ' : ' + c.type + '</span>'; })
+              .join('');
+            var fonctions = spec.fonctions
+              .map(function (f) { return '<span class="puce">' + f + '</span>'; })
+              .join('');
+            bloc.innerHTML =
+              '<h2>Compris — application</h2><dl>' +
+              '<dt>objet</dt><dd>' + echapper(spec.singulier) + ' / ' + echapper(spec.pluriel) + '</dd>' +
+              '<dt>champs</dt><dd>' + spec.champs.length + '</dd>' +
+              '</dl><div class="puces">' + champs + '</div>' +
+              '<div class="puces">' + fonctions + '</div>' + jauge;
+            return;
+          }
+
           var sections = spec.sections
             .map(function (s) { return '<span class="puce">' + (Moteur.TITRES_NAV[s] || s) + '</span>'; })
             .join('');
           bloc.innerHTML =
-            '<h2>Compris</h2><dl>' +
-            '<dt>activité</dt><dd>' + spec.metierNom + '</dd>' +
-            '<dt>nom</dt><dd>' + spec.nom + '</dd>' +
-            (spec.ville ? '<dt>ville</dt><dd>' + spec.ville + '</dd>' : '') +
+            '<h2>Compris — site</h2><dl>' +
+            '<dt>activité</dt><dd>' + echapper(spec.metierNom) + '</dd>' +
+            '<dt>nom</dt><dd>' + echapper(spec.nom) + '</dd>' +
+            (spec.ville ? '<dt>ville</dt><dd>' + echapper(spec.ville) + '</dd>' : '') +
             '<dt>ambiance</dt><dd>' + spec.ambiance + '</dd>' +
-            '</dl><div class="puces">' + sections + '</div>' +
-            '<div class="jauge"><i style="width:' + Math.round(spec.confiance * 100) + '%"></i></div>';
+            '</dl><div class="puces">' + sections + '</div>' + jauge;
         }
 
         /* ------------------------------------------------------ création */
         function creer(phrase) {
           try {
-            var spec = Moteur.analyser(phrase);
-            site = { spec: spec, fichiers: Moteur.generer(spec) };
+            var quoi = genre === 'auto' ? deviner(phrase) : genre;
+            var moteur = quoi === 'app' ? MoteurApp : Moteur;
+            var spec = moteur.analyser(phrase);
+            site = { spec: spec, fichiers: moteur.generer(spec), genre: quoi };
             choisi = 'index.html';
-            montrerCompris(spec);
+            montrerCompris(spec, quoi);
             afficher();
             onglet('apercu');
           } catch (probleme) {
@@ -401,6 +477,17 @@ python3 -m brain atelier --projet ./mon-site</pre>
         $('creer').onclick = function () { creer($('demande').value.trim()); };
         $('demande').addEventListener('keydown', function (e) {
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) creer($('demande').value.trim());
+        });
+
+        Array.prototype.forEach.call($('genre').querySelectorAll('button'), function (bouton) {
+          bouton.onclick = function () {
+            genre = bouton.dataset.g;
+            Array.prototype.forEach.call($('genre').querySelectorAll('button'), function (b) {
+              b.setAttribute('aria-pressed', String(b === bouton));
+            });
+            var phrase = $('demande').value.trim();
+            if (phrase) creer(phrase);
+          };
         });
 
         Array.prototype.forEach.call($('exemples').querySelectorAll('button'), function (bouton) {
@@ -500,7 +587,7 @@ python3 -m brain atelier --projet ./mon-site</pre>
           var url = URL.createObjectURL(archiver(site.fichiers));
           var lien = document.createElement('a');
           lien.href = url;
-          lien.download = Moteur.identifiant(site.spec.nom) + '.zip';
+          lien.download = Moteur.identifiant(site.spec.nom || site.spec.titre) + '.zip';
           document.body.appendChild(lien);
           lien.click();
           lien.remove();

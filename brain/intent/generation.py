@@ -523,7 +523,19 @@ document.getElementById('exporter')?.addEventListener('click', () => {
 
     return f"""/** Affichage de « {intention.titre} ». La logique vit dans store.js. */
 
-const magasin = new Magasin(globalThis.localStorage ?? null);
+/**
+ * Le simple ACCES a localStorage leve dans un cadre isole ou en navigation
+ * privee stricte : il faut donc l'entourer, pas seulement son usage.
+ */
+function stockageDisponible() {{
+  try {{
+    return globalThis.localStorage ?? null;
+  }} catch {{
+    return null;   // l'application reste utilisable, en memoire
+  }}
+}}
+
+const magasin = new Magasin(stockageDisponible());
 
 function criteres() {{
   return {{
@@ -587,9 +599,15 @@ document.getElementById('formulaire').addEventListener('submit', (evenement) => 
   }}
 }});
 
+/*
+ * Un seul écouteur par champ, et surtout PAS « change » sur une zone de
+ * texte : « change » part à la perte du focus, donc cliquer « Modifier »
+ * redessinerait la liste entre le mousedown et le mouseup — le bouton
+ * disparaîtrait sous la souris et le clic n'arriverait jamais.
+ */
 for (const identifiant of ['recherche', 'filtre', 'tri']) {{
-  document.getElementById(identifiant)?.addEventListener('input', afficher);
-  document.getElementById(identifiant)?.addEventListener('change', afficher);
+  const champ = document.getElementById(identifiant);
+  champ?.addEventListener(champ.tagName === 'SELECT' ? 'change' : 'input', afficher);
 }}
 {export}
 afficher();

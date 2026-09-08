@@ -139,6 +139,15 @@ class TestGeneration(unittest.TestCase):
         fichiers = generer(analyser("Une liste de tâches avec un titre et une date d'échéance"))
         self.assertIn("échéance", fichiers["store.js"])
 
+    def test_pas_de_change_sur_la_zone_de_recherche(self) -> None:
+        """Regression : « change » part a la perte du focus. Cliquer
+        « Modifier » redessinait la liste entre le mousedown et le mouseup,
+        le bouton disparaissait sous la souris, et modifier devenait ajouter.
+        """
+        ui = generer(analyser("Une liste de tâches avec un titre"))["ui.js"]
+        self.assertNotIn("addEventListener('change', afficher)", ui)
+        self.assertIn("tagName === 'SELECT'", ui)
+
 
 @unittest.skipUnless(shutil.which("node"), "Node.js absent")
 class TestCodeExecutable(unittest.TestCase):

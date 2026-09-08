@@ -1,17 +1,28 @@
 # Forge
 
-### ▶ [Créer un site en une phrase](https://sanctimaps-gif.github.io/Applications-qui-cr-e-des-applications-/)
+### ▶ [Créer un site ou une application en une phrase](https://sanctimaps-gif.github.io/Applications-qui-cr-e-des-applications-/)
 
-Décrivez votre site — « un site chaleureux pour mon restaurant Le Tilleul à Annecy, avec la carte,
-les horaires et un formulaire de contact » — et il s'écrit sous vos yeux : navigation, sections,
-galerie, tarifs, FAQ, formulaire validé, thème clair et sombre. Vous le voyez tourner, vous le
-téléchargez en `.zip`, vous l'hébergez où vous voulez.
+Décrivez ce que vous voulez, et il s'écrit sous vos yeux.
+
+**Un site** — « un site chaleureux pour mon restaurant Le Tilleul à Annecy, avec la carte, les
+horaires et un formulaire de contact » : navigation, sections, galerie, tarifs, FAQ, formulaire
+validé, thème clair et sombre.
+
+**Une vraie application** — « une application de gestion de tâches avec un titre, une priorité, une
+date d'échéance et une case terminé, avec recherche et export CSV » : ce n'est pas une maquette.
+La logique métier vit dans `store.js`, séparée de l'affichage — validation des saisies, persistance,
+création, modification, suppression, recherche, filtre, tri, statistiques, export CSV — et le projet
+livré contient **ses propres tests**, que vous lancez avec `npm test`.
+
+Dans les deux cas vous le voyez tourner dans l'aperçu, vous le téléchargez en `.zip`, et il marche
+d'un double-clic sur `index.html`.
 
 **Aucune intelligence artificielle n'est appelée** : ni la mienne, ni celle d'un autre. Pas de clé,
-pas de compte, pas de quota, aucune donnée envoyée nulle part. Le moteur
-([`web/moteur.js`](web/moteur.js)) est un fichier lisible qui tourne entièrement dans votre
-navigateur, et le site produit est lui aussi autonome — aucune police distante, aucun script tiers,
-aucune image chargée depuis l'extérieur.
+pas de compte, pas de quota, aucune donnée envoyée nulle part. Les deux moteurs
+([`web/moteur.js`](web/moteur.js) pour les sites, [`web/moteur-app.js`](web/moteur-app.js) pour les
+applications) sont des fichiers lisibles qui tournent entièrement dans votre navigateur, et ce
+qu'ils produisent est lui aussi autonome — aucune police distante, aucun script tiers, aucune image
+chargée depuis l'extérieur, aucune dépendance à installer.
 
 ---
 
@@ -107,21 +118,31 @@ l'échelle, que seul un centre de calcul procure.
 
 ## Les deux éditions
 
-| | Générateur de sites (le lien) | Forge complet | forge-brain |
+| | La page publique (le lien) | Forge complet | forge-brain |
 |---|---|---|---|
 | Accès | un lien, rien à installer | `npm install` puis `forge serve` | `pip install -r requirements.txt` |
 | IA utilisée | **aucune** | celle de votre choix, ou la vôtre | **la vôtre, entraînée par vous** |
 | Clé nécessaire | non | selon le fournisseur | non |
-| Ce qu'il produit | sites web complets | n'importe quelle pile | applications, API, outils terminal, sites |
+| Ce qu'il produit | sites web complets **et applications** | n'importe quelle pile | applications, API, outils terminal, sites |
 | Limite de création | **aucune** | **aucune** | **aucune** |
 
-Le générateur de sites tient dans [`index.html`](index.html) et [`web/moteur.js`](web/moteur.js) :
-deux fichiers sans dépendance, qui fonctionnent aussi hors ligne une fois téléchargés.
+La page publique tient dans [`index.html`](index.html), [`web/moteur.js`](web/moteur.js) (sites),
+[`web/moteur-app.js`](web/moteur-app.js) (applications) et [`web/lexique.js`](web/lexique.js) :
+quatre fichiers sans dépendance, qui fonctionnent aussi hors ligne une fois téléchargés. Le
+sélecteur **Auto / Site / Application** laisse la page décider d'après votre phrase, ou vous laisse
+trancher.
 
-En ligne de commande, le même moteur :
+`web/lexique.js` est engendré depuis [`brain/intent/lexique.py`](brain/intent/lexique.py) par
+[`scripts/exporter_lexique.py`](scripts/exporter_lexique.py) : le vocabulaire est défini **une seule
+fois**, et un test vérifie que le fichier publié correspond à l'export courant. Un autre test compare
+l'analyse JavaScript à l'analyse Python phrase par phrase — mêmes champs, mêmes types, mêmes
+fonctions.
+
+En ligne de commande, les mêmes moteurs :
 
 ```bash
 python3 -m brain site "Un site pour ma boulangerie Le Fournil à Lyon, avec les produits et les horaires" --sortie ./mon-site
+python3 -m brain coder "Une application de gestion de tâches avec un titre, une priorité et une date d'échéance" --sortie ./mes-taches
 ```
 
 ## Installation

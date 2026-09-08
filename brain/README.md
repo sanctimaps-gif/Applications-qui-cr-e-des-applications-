@@ -228,6 +228,30 @@ Le moteur vit dans [`web/moteur.js`](../web/moteur.js) : une seule implémentati
 qui tourne aussi bien ici sous Node que dans la page publique du dépôt — donc sans divergence
 possible entre les deux.
 
+### La page publique produit aussi de vraies applications
+
+Le compilateur d'intentions existe en deux implémentations : celle de référence, en Python
+([`intent/analyse.py`](intent/analyse.py) et [`intent/generation.py`](intent/generation.py)), et
+celle du navigateur, en JavaScript ([`web/moteur-app.js`](../web/moteur-app.js)). La page publique
+utilise la seconde, ce qui lui permet de fabriquer une application **sans aucune clé et sans aucun
+appel réseau**.
+
+Ce que produit la page n'est pas une maquette : la logique métier est isolée dans `store.js`
+(validation, persistance, CRUD, recherche, filtre, tri, statistiques, export CSV), l'affichage n'est
+que la peau posée dessus, et le projet livré contient ses propres tests exécutables sous Node.
+
+Deux garde-fous empêchent les deux implémentations de diverger :
+
+- le vocabulaire n'est écrit qu'une fois, dans [`intent/lexique.py`](intent/lexique.py), et
+  [`scripts/exporter_lexique.py`](../scripts/exporter_lexique.py) en dérive `web/lexique.js` — un
+  test vérifie que le fichier publié est bien l'export courant ;
+- un test de **parité** compare, phrase par phrase, ce que comprennent les deux moteurs : mêmes
+  champs, mêmes libellés, mêmes types, mêmes options, mêmes fonctions, même entité.
+
+```bash
+python3 -m unittest brain.tests.test_app_web
+```
+
 ### Trois cibles d'application, à partir de la même phrase
 
 La phrase décide de ce qui est produit. Aucune dépendance dans aucun des trois cas.
@@ -291,6 +315,7 @@ modèle — donc l'échelle décrite plus haut.
 | `agent/atelier.py` | La boucle : outils confinés, régénération, instantanés, tests, historique. |
 | `agent/repl.py` | L'interface en console, avec diffs colorés. |
 | `intent/site.py` | Pont vers le moteur de sites (`web/moteur.js`), en JavaScript. |
+| `intent/app_web.py` | Pont vers le moteur d'applications du navigateur (`web/moteur-app.js`). |
 
 ## Les tests
 
@@ -298,15 +323,16 @@ modèle — donc l'échelle décrite plus haut.
 python3 -m unittest discover -s brain/tests -t .
 ```
 
-110 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
+126 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
 absence de perte de caractères au découpage, **causalité** (aucune fuite d'information du futur),
 **équivalence entre génération avec et sans cache**, chute réelle de la perte à l'entraînement,
 débordement de contexte, chaîne complète de bout en bout, et contrat du serveur.
 
 Pour le compilateur d'intention, le test décisif ne se contente pas de lire le code produit :
 il **génère quatre applications, les exécute sous Node et fait passer leurs propres tests**.
-L'atelier est testé de la même façon : une session complète est jouée, puis les tests du
-projet produit doivent passer.
+Le moteur du navigateur passe la même épreuve, sur cinq phrases, plus un test de parité avec le
+compilateur Python. L'atelier est testé de la même façon : une session complète est jouée, puis
+les tests du projet produit doivent passer.
 
 ## Ce qui manque pour aller plus loin
 
