@@ -20,7 +20,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from brain.intent import analyse, lexique, referentiel
+from brain.intent import analyse, generer, lexique, referentiel
 from brain.intent.app_web import MOTEUR, construire, ecrire, resume
 
 RACINE = Path(__file__).resolve().parents[2]
@@ -271,6 +271,71 @@ class TestReferentiel(unittest.TestCase):
                     [(c.cle, c.type, tuple(c.options)) for c in py.champs],
                 )
                 self.assertEqual(sorted(js["fonctions"]), sorted(py.fonctions))
+
+
+@unittest.skipUnless(NODE, "Node.js absent")
+class TestPariteDesFichiers(unittest.TestCase):
+    """Comparer les analyses ne suffit pas.
+
+    Les deux moteurs ont compris exactement la même chose pendant des semaines
+    tout en produisant des interfaces différentes : celle du navigateur savait
+    modifier une fiche, celle de Python non. Une application où l'on ajoute et
+    supprime mais où l'on ne peut rien corriger n'est pas une application.
+    On compare donc aussi ce qui est écrit.
+    """
+
+    #: Ce que toute interface produite doit savoir faire, et par quoi cela se
+    #: reconnaît dans le code émis.
+    CAPACITES_UI = {
+        "état d’édition": "enEdition",
+        "remplir le formulaire depuis une fiche": "function remplirFormulaire(",
+        "vider le formulaire": "function viderFormulaire(",
+        "revenir à l’ajout": "function reinitialiser(",
+        "bouton Modifier": "'Modifier'",
+        "bouton Annuler": "getElementById('annuler')",
+        "bascule Ajouter / Enregistrer": "'Enregistrer'",
+        "modification réelle": "magasin.modifier(enEdition",
+        "accès protégé à localStorage": "function stockageDisponible(",
+        "un seul écouteur par champ": "tagName === 'SELECT'",
+    }
+
+    CAPACITES_HTML = {
+        "bouton de validation identifiable": 'id="valider"',
+        "bouton d’annulation": 'id="annuler"',
+    }
+
+    def _paire(self, phrase: str) -> tuple[dict, dict]:
+        _, js = construire(phrase)
+        py = generer(analyse.analyser(phrase))
+        return js, py
+
+    def test_les_deux_interfaces_ont_les_memes_capacites(self) -> None:
+        for phrase in ("Un carnet de contacts", "Une liste de tâches", "Un suivi de dépenses"):
+            js, py = self._paire(phrase)
+            for quoi, marqueur in self.CAPACITES_UI.items():
+                with self.subTest(phrase=phrase, capacite=quoi):
+                    self.assertIn(marqueur, js["ui.js"], "manque côté navigateur")
+                    self.assertIn(marqueur, py["ui.js"], "manque côté Python")
+            for quoi, marqueur in self.CAPACITES_HTML.items():
+                with self.subTest(phrase=phrase, capacite=quoi):
+                    self.assertIn(marqueur, js["index.html"], "manque côté navigateur")
+                    self.assertIn(marqueur, py["index.html"], "manque côté Python")
+
+    def test_les_deux_produisent_les_memes_fichiers(self) -> None:
+        js, py = self._paire("Un carnet de contacts")
+        self.assertEqual(sorted(js), sorted(py))
+
+    def test_les_deux_logiques_metier_exposent_la_meme_interface(self) -> None:
+        js, py = self._paire("Une liste de tâches")
+        for methode in ("ajouter(", "modifier(", "supprimer(", "chercher(", "statistiques(", "versCsv("):
+            self.assertIn(methode, js["store.js"], methode)
+            self.assertIn(methode, py["store.js"], methode)
+
+    def test_ni_l_un_ni_l_autre_ne_touche_au_dom_dans_store(self) -> None:
+        js, py = self._paire("Un carnet de contacts")
+        for interdit in ("document.", "window.", "querySelector"):
+            self.assertNotIn(interdit, js["store.js"], interdit)
+            self.assertNotIn(interdit, py["store.js"], interdit)
 
 
 class TestLexiquePartage(unittest.TestCase):

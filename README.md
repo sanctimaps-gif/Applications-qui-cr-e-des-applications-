@@ -26,11 +26,14 @@ Ce que vous nommez l'emporte toujours ; le référentiel ne fait que compléter,
 « seulement » ou « uniquement » le désactivent. Ce qui a été déduit vous est dit — jamais deviné en
 silence.
 
-Dans les deux cas vous le voyez tourner dans l'aperçu, vous le téléchargez en `.zip`, et il marche
-d'un double-clic sur `index.html`.
+Dans les deux cas vous parcourez le code fichier par fichier, puis vous **connectez votre compte
+GitHub et publiez le projet sur votre dépôt en un seul commit** — un bouton, et vous l'ouvrez sur
+GitHub. Avec GitHub Pages activé, il tourne en ligne dans la foulée. Un `.zip` reste disponible si
+vous préférez.
 
-**Aucune intelligence artificielle n'est appelée** : ni la mienne, ni celle d'un autre. Pas de clé,
-pas de compte, pas de quota, aucune donnée envoyée nulle part. Les deux moteurs
+**Aucune intelligence artificielle n'est appelée** : ni la mienne, ni celle d'un autre. Pas de clé
+d'IA, pas de compte, pas de quota. Tout est calculé dans l'onglet ; la seule chose qui sorte, c'est
+votre projet, quand *vous* le publiez sur *votre* dépôt. Les deux moteurs
 ([`web/moteur.js`](web/moteur.js) pour les sites, [`web/moteur-app.js`](web/moteur-app.js) pour les
 applications) sont des fichiers lisibles qui tournent entièrement dans votre navigateur, et ce
 qu'ils produisent est lui aussi autonome — aucune police distante, aucun script tiers, aucune image
@@ -141,10 +144,25 @@ l'échelle, que seul un centre de calcul procure.
 | Limite de création | **aucune** | **aucune** | **aucune** |
 
 La page publique tient dans [`index.html`](index.html), [`web/moteur.js`](web/moteur.js) (sites),
-[`web/moteur-app.js`](web/moteur-app.js) (applications) et [`web/lexique.js`](web/lexique.js) :
-quatre fichiers sans dépendance, qui fonctionnent aussi hors ligne une fois téléchargés. Le
-sélecteur **Auto / Site / Application** laisse la page décider d'après votre phrase, ou vous laisse
-trancher.
+[`web/moteur-app.js`](web/moteur-app.js) (applications), [`web/lexique.js`](web/lexique.js) et
+[`web/github.js`](web/github.js) : cinq fichiers sans dépendance. Le sélecteur
+**Auto / Site / Application** laisse la page décider d'après votre phrase, ou vous laisse trancher.
+
+### Publier sur votre dépôt GitHub
+
+L'onglet **GitHub** de la page fait ce que fait `forge new --github`, mais depuis le navigateur :
+
+1. vous collez un **jeton d'accès personnel** (permissions *Contents : Read and write*, plus
+   *Administration : Read and write* si le dépôt doit être créé) ;
+2. la page crée le dépôt s'il n'existe pas, sinon elle republie dedans ;
+3. tous les fichiers partent en **un seul commit** — un blob par fichier, un arbre, un commit, la
+   référence — exactement comme [`src/git/github.ts`](src/git/github.ts) en ligne de commande ;
+4. GitHub Pages est activé si vous le demandez, et vous obtenez deux liens : *Ouvrir sur GitHub* et
+   *Voir en ligne*.
+
+Votre jeton reste dans cet onglet. Il part vers `api.github.com` et nulle part ailleurs — cette page
+n'a aucun serveur derrière elle — et il n'est conservé dans le navigateur que si vous cochez la
+case ; « Se déconnecter » l'efface.
 
 ### Le référentiel : ce qui évite d'avoir à tout dicter
 

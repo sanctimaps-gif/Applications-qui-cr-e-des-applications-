@@ -301,7 +301,11 @@ Deux garde-fous empêchent les deux implémentations de diverger :
   test vérifie que le fichier publié est bien l'export courant ;
 - un test de **parité** compare, sur les 67 domaines et sur une douzaine de phrases, ce que
   comprennent les deux moteurs : mêmes champs, mêmes libellés, mêmes types, mêmes options, mêmes
-  fonctions, même entité.
+  fonctions, même entité ;
+- un second compare **ce qu'ils écrivent**, et pas seulement ce qu'ils comprennent. Comparer les
+  analyses ne suffisait pas : les deux moteurs se sont accordés sur le sens tout en produisant des
+  interfaces différentes — celle du navigateur savait modifier une fiche, celle de Python non. Une
+  application où l'on ajoute et supprime sans pouvoir rien corriger n'est pas une application.
 
 ```bash
 python3 -m unittest brain.tests.test_app_web
@@ -373,13 +377,20 @@ modèle — donc l'échelle décrite plus haut.
 | `intent/site.py` | Pont vers le moteur de sites (`web/moteur.js`), en JavaScript. |
 | `intent/app_web.py` | Pont vers le moteur d'applications du navigateur (`web/moteur-app.js`). |
 
+Côté navigateur, [`web/github.js`](../web/github.js) publie le projet sur votre dépôt en un seul
+commit (API Git Data), sans serveur intermédiaire. Ses tests
+([`tests/test_github_web.py`](tests/test_github_web.py)) remplacent `fetch` par un faux GitHub et
+vérifient ce qui *serait* parti : l'ordre des appels, l'encodage UTF-8 en base64, le commit sans
+parent d'un dépôt neuf, le commit enfant d'un dépôt existant, et le fait que le jeton ne voyage
+qu'en en-tête.
+
 ## Les tests
 
 ```bash
 python3 -m unittest discover -s brain/tests -t .
 ```
 
-138 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
+157 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
 absence de perte de caractères au découpage, **causalité** (aucune fuite d'information du futur),
 **équivalence entre génération avec et sans cache**, chute réelle de la perte à l'entraînement,
 débordement de contexte, chaîne complète de bout en bout, et contrat du serveur.

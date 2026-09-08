@@ -435,7 +435,8 @@ def _html(intention: Intention) -> str:
 
       <form id="formulaire" novalidate>
 {champs}
-        <button type="submit">Ajouter</button>
+        <button type="submit" id="valider">Ajouter</button>
+        <button type="button" id="annuler" hidden>Annuler</button>
       </form>
 
       <p id="erreur" class="erreur" role="alert" hidden></p>
@@ -480,6 +481,14 @@ def _ui(intention: Intention) -> str:
             remises.append(f"  document.getElementById('champ-{c.cle}').checked = false;")
         elif c.type != "choix":
             remises.append(f"  document.getElementById('champ-{c.cle}').value = '';")
+
+    # Le pendant des remises : recharger le formulaire depuis une fiche.
+    ecritures = []
+    for c in champs:
+        cible = "checked" if c.type == "booleen" else "value"
+        ecritures.append(
+            f"  document.getElementById('champ-{c.cle}').{cible} = fiche.{c.cle};"
+        )
 
     details = []
     for c in champs:
@@ -541,6 +550,23 @@ function stockageDisponible() {{
 }}
 
 const magasin = new Magasin(stockageDisponible());
+let enEdition = null;   // identifiant de la fiche en cours de modification
+
+function remplirFormulaire(fiche) {{
+{chr(10).join(ecritures)}
+}}
+
+function viderFormulaire() {{
+{chr(10).join(remises)}
+}}
+
+function reinitialiser() {{
+  enEdition = null;
+  viderFormulaire();
+  document.getElementById('valider').textContent = 'Ajouter';
+  document.getElementById('annuler').hidden = true;
+  document.getElementById('erreur').hidden = true;
+}}
 
 function criteres() {{
   return {{
@@ -568,6 +594,19 @@ function afficher() {{
 {chr(10).join(details)}
     element.append(details);
 
+    const modifier = document.createElement('button');
+    modifier.type = 'button';
+    modifier.className = 'lien';
+    modifier.textContent = 'Modifier';
+    modifier.addEventListener('click', () => {{
+      enEdition = fiche.id;
+      remplirFormulaire(fiche);
+      document.getElementById('valider').textContent = 'Enregistrer';
+      document.getElementById('annuler').hidden = false;
+      document.getElementById('champ-{principal.cle}').focus();
+    }});
+    element.append(modifier);
+
     const supprimer = document.createElement('button');
     supprimer.type = 'button';
     supprimer.className = 'supprimer';
@@ -575,6 +614,7 @@ function afficher() {{
     supprimer.title = 'Supprimer';
     supprimer.addEventListener('click', () => {{
       magasin.supprimer(fiche.id);
+      if (enEdition === fiche.id) reinitialiser();
       afficher();
     }});
     element.append(supprimer);
@@ -587,16 +627,21 @@ function afficher() {{
     Object.entries(stats).map(([cle, valeur]) => `${{cle}} : ${{valeur}}`).join(' · ');
 }}
 
+document.getElementById('annuler').addEventListener('click', reinitialiser);
+
 document.getElementById('formulaire').addEventListener('submit', (evenement) => {{
   evenement.preventDefault();
   const erreur = document.getElementById('erreur');
   erreur.hidden = true;
 
-  try {{
-    magasin.ajouter({{
+  const brouillon = {{
 {chr(10).join(lectures)}
-    }});
-{chr(10).join(remises)}
+  }};
+
+  try {{
+    if (enEdition) magasin.modifier(enEdition, brouillon);
+    else magasin.ajouter(brouillon);
+    reinitialiser();
     afficher();
   }} catch (probleme) {{
     erreur.textContent = probleme.message;
@@ -714,13 +759,27 @@ li {
 .details { display: flex; flex-wrap: wrap; gap: 10px; margin-left: auto; }
 .detail { font-size: 12px; opacity: 0.72; white-space: nowrap; }
 
-.supprimer {
+.lien, .supprimer {
   background: none;
   border: 0;
-  color: var(--alerte);
   cursor: pointer;
   padding: 0 4px;
+}
+.lien {
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 13px;
+}
+.supprimer {
+  color: var(--alerte);
   font-size: 16px;
+}
+
+#annuler {
+  background: none;
+  border: 1px solid currentColor;
+  color: inherit;
+  opacity: 0.7;
 }
 
 .synthese { margin-top: 18px; font-size: 13px; opacity: 0.75; }
