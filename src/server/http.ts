@@ -299,7 +299,7 @@ export function createServer(cfg: ForgeConfig = loadConfig()): {
           connecte: Boolean(jeton),
           login: enregistre?.login,
           jeton: jeton ?? null,
-          clientIdConnu: Boolean(cfg.github.clientId),
+          clientIdConnu: Boolean(process.env['FORGE_GITHUB_CLIENT_ID'] ?? enregistre?.clientId),
           origine: depuisEnv ? 'environnement' : jeton ? 'login' : null,
         });
         return;
@@ -307,7 +307,10 @@ export function createServer(cfg: ForgeConfig = loadConfig()): {
 
       if (route === '/api/github/device' && req.method === 'POST') {
         const body = (await readBody(req)) as { clientId?: string; scope?: string };
-        const clientId = body.clientId?.trim() || cfg.github.clientId;
+        const clientId =
+          body.clientId?.trim() ||
+          process.env['FORGE_GITHUB_CLIENT_ID'] ||
+          readCredentials(cfg.home)?.clientId;
         if (!clientId) {
           json(res, 400, {
             error:
@@ -328,7 +331,10 @@ export function createServer(cfg: ForgeConfig = loadConfig()): {
 
       if (route === '/api/github/device/jeton' && req.method === 'POST') {
         const body = (await readBody(req)) as { clientId?: string; deviceCode?: string };
-        const clientId = body.clientId?.trim() || cfg.github.clientId;
+        const clientId =
+          body.clientId?.trim() ||
+          process.env['FORGE_GITHUB_CLIENT_ID'] ||
+          readCredentials(cfg.home)?.clientId;
         if (!clientId || !body.deviceCode) {
           json(res, 400, { error: 'clientId et deviceCode requis' });
           return;
@@ -357,8 +363,28 @@ export function createServer(cfg: ForgeConfig = loadConfig()): {
         return;
       }
 
+      if (route === '/api/github/application' && req.method === 'POST') {
+        const body = (await readBody(req)) as { clientId?: string };
+        const clientId = body.clientId?.trim();
+        // Un identifiant d'application OAuth GitHub : lettres, chiffres, et
+        // rien d'autre. Le valider evite d'ecrire n'importe quoi sur le disque.
+        if (!clientId || !/^[A-Za-z0-9._-]{8,80}$/.test(clientId)) {
+          json(res, 400, { error: 'Client ID invalide.' });
+          return;
+        }
+        const existant = readCredentials(cfg.home);
+        writeCredentials(cfg.home, { ...existant, clientId });
+        json(res, 200, { clientId });
+        return;
+      }
+
       if (route === '/api/github/logout' && req.method === 'POST') {
-        json(res, 200, { efface: clearCredentials(cfg.home) });
+        // On oublie le jeton, pas l'application : la recoller a chaque
+        // deconnexion serait exactement le tracas qu'on veut supprimer.
+        const existant = readCredentials(cfg.home);
+        const efface = clearCredentials(cfg.home);
+        if (existant?.clientId) writeCredentials(cfg.home, { clientId: existant.clientId });
+        json(res, 200, { efface });
         return;
       }
     }

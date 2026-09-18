@@ -390,7 +390,7 @@ qu'en en-tête.
 python3 -m unittest discover -s brain/tests -t .
 ```
 
-157 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
+163 tests, sans réseau : aller-retour exact du tokeniseur (accents, emoji, code, `snake_case`),
 absence de perte de caractères au découpage, **causalité** (aucune fuite d'information du futur),
 **équivalence entre génération avec et sans cache**, chute réelle de la perte à l'entraînement,
 débordement de contexte, chaîne complète de bout en bout, et contrat du serveur.

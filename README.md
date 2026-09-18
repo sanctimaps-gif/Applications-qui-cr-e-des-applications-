@@ -31,8 +31,9 @@ GitHub et publiez le projet sur votre dépôt en un seul commit** — un bouton,
 GitHub. Avec GitHub Pages activé, il tourne en ligne dans la foulée. Un `.zip` reste disponible si
 vous préférez.
 
-La connexion se fait **sans clé** — `forge login`, un code court à taper sur GitHub, comme
-`gh auth login`. [Pourquoi la page publique demande encore un jeton](#pourquoi-la-page-publique-demande-encore-un-jeton),
+La connexion se fait **sans aucun jeton** : `forge studio`, un clic, un code court tapé chez GitHub
+— puis il ne reste qu'à donner le nom du dépôt.
+[Pourquoi la page publique demande encore un jeton](#pourquoi-la-page-publique-demande-encore-un-jeton),
 et comment s'en passer, plus bas.
 
 **Aucune intelligence artificielle n'est appelée** : ni la mienne, ni celle d'un autre. Pas de clé
@@ -71,7 +72,7 @@ forge new "Un raccourcisseur d'URL avec statistiques, API REST et tests" --githu
 | **Il se répare tout seul** | En cas d'échec, il lit la vraie sortie d'erreur, cible les fichiers fautifs, les régénère et relance — jusqu'à ce que ça passe. |
 | **Il fait évoluer l'existant** | `forge iterate` modifie un projet déjà généré : plan de changement ciblé, édition, vérification, réparation, commit — et pull request si demandé. |
 | **Intégration GitHub complète** | Dépôt, push en un commit via l'API Git Data, branches, pull requests, releases, sujets, GitHub Pages, workflow CI. |
-| **Connexion sans clé** | `forge login` : le device flow d'OAuth, un code court tapé sur GitHub, aucun jeton à copier. Le jeton atterrit dans `~/.forge/github.json` en `0600` et sert à toutes les commandes. |
+| **Connexion sans clé** | `forge studio` ou `forge login` : le device flow d'OAuth, un code court tapé sur GitHub, aucun jeton à copier. Le jeton atterrit dans `~/.forge/github.json` en `0600` et sert à toutes les commandes. Il ne reste ensuite qu'à donner le nom du dépôt. |
 
 ## Performance
 
@@ -161,10 +162,18 @@ le dépôt est créé s'il n'existe pas, sinon on republie dedans, et tous les f
 [`src/git/github.ts`](src/git/github.ts) en ligne de commande. GitHub Pages est activé si vous le
 demandez, et vous obtenez deux liens : *Ouvrir sur GitHub* et *Voir en ligne*.
 
-#### Se connecter sans clé
+#### Sans aucun jeton
 
-C'est le **device flow** d'OAuth, celui de `gh auth login` : GitHub affiche un code court, vous le
-tapez chez lui, et c'est fini. Rien à copier, rien à coller.
+```bash
+forge studio
+```
+
+Le navigateur s'ouvre sur le générateur. Vous cliquez **« Se connecter avec GitHub »**, un code
+court s'affiche, vous le tapez chez GitHub — et ensuite **vous n'avez plus qu'à donner le nom du
+dépôt**. Plus jamais de jeton à coller, ni la première fois ni les suivantes.
+
+C'est le **device flow** d'OAuth, celui de `gh auth login`. En ligne de commande, c'est la même
+chose :
 
 ```bash
 forge login
@@ -175,20 +184,13 @@ forge login
 
 Le jeton est écrit dans `~/.forge/github.json`, en lecture pour vous seul (`0600`), et toutes les
 commandes le reprennent — `forge new --github`, `forge publish`, `forge doctor`. `forge logout`
-l'efface.
+l'efface (sans oublier l'application : vous ne la redonnez jamais deux fois).
 
-Pour l'avoir **dans la page** plutôt qu'au terminal :
-
-```bash
-forge serve          # puis ouvrez http://127.0.0.1:7331/studio
-```
-
-Un bouton « Se connecter avec GitHub » remplace alors le champ de jeton.
-
-**La seule chose à créer, une fois :** une application OAuth, sur
+**La seule chose à faire une fois :** créer une application OAuth, sur
 [github.com/settings/applications/new](https://github.com/settings/applications/new) — cochez
-*Enable Device Flow*, et copiez le **Client ID**. Ce n'est pas un secret (c'est même son nom :
-*public client*), il n'y a aucun *client secret* à générer, et il se donne une seule fois :
+*Enable Device Flow*, et copiez le **Client ID**. Ce n'est pas un secret : c'est même son nom,
+*public client*. Il n'y a aucun *client secret* à générer, et rien de secret n'entre dans ce dépôt.
+Le studio vous le demande à la première connexion ; sinon :
 
 ```bash
 forge login --client-id Ov23li...
@@ -203,10 +205,10 @@ C'est une décision de GitHub, qu'aucun code de ce dépôt ne contourne — et l
 relais public reviendrait à faire transiter vos jetons par un serveur tiers, ce qui serait pire que
 le problème.
 
-Donc : servie par `forge serve`, la page se connecte sans clé, parce qu'un processus local fait les
-deux appels pour elle. Servie depuis GitHub Pages, elle le dit et propose un jeton d'accès personnel
-(permissions *Contents : Read and write*, plus *Administration : Read and write* pour créer le
-dépôt).
+Donc : ouverte par `forge studio`, la page se connecte sans clé, parce qu'un processus local fait
+les deux appels pour elle. Ouverte depuis GitHub Pages, elle affiche cette commande — et garde le
+collage d'un jeton replié derrière « Ou publier maintenant avec un jeton », pour qui ne veut rien
+installer.
 
 Dans les deux cas, le jeton ne part que vers `api.github.com`. Dans le navigateur il n'est conservé
 que si vous cochez la case ; « Se déconnecter » l'efface, y compris du fichier local.
@@ -278,7 +280,8 @@ export OLLAMA_HOST=http://127.0.0.1:11434
 Pour GitHub, **rien à coller** — un code court à taper chez eux :
 
 ```bash
-forge login
+forge studio     # le générateur, dans le navigateur
+forge login      # ou, au terminal
 ```
 
 (Un jeton reste accepté si vous préférez : `export GITHUB_TOKEN=ghp_...`, droits `repo` et

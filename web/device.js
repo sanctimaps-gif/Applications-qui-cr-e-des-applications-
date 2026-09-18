@@ -85,12 +85,24 @@
     return tour();
   }
 
+  /**
+   * Retient l'identifiant public de l'application OAuth, une fois pour toutes.
+   *
+   * Ce n'est pas un secret — c'est meme le contraire : GitHub appelle cela un
+   * « public client ». Le coller une fois n'a rien a voir avec coller un jeton
+   * a chaque publication.
+   */
+  function retenirApplication(clientId) {
+    return envoyer('/api/github/application', { clientId: clientId });
+  }
+
   function deconnecter() {
     return envoyer('/api/github/logout', {}).catch(function () { return { efface: false }; });
   }
 
   var Device = {
     session: session,
+    retenirApplication: retenirApplication,
     commencer: commencer,
     attendre: attendre,
     deconnecter: deconnecter,

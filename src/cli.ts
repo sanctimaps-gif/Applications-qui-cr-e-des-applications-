@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import path from 'node:path';
 import process from 'node:process';
+import { spawn } from 'node:child_process';
 import { loadConfig, loadDotEnv, type ForgeConfig } from './config.js';
 import { EventBus } from './util/events.js';
 import { Logger, color } from './util/logger.js';
@@ -63,6 +64,7 @@ const HELP = `${color.bold('forge')} — genere des applications completes avec 
 ${color.bold('USAGE')}
   forge new "<description>" [options]
   forge iterate <repertoire> "<modification>" [options]
+  forge studio                              Ouvre le generateur, connexion GitHub sans cle
   forge login [--client-id <id>]
   forge logout
   forge serve [--port 7331] [--host 127.0.0.1]
@@ -363,10 +365,52 @@ function cmdStacks(logger: Logger): number {
   return 0;
 }
 
+/**
+ * Ouvre une adresse dans le navigateur de l'utilisateur.
+ *
+ * Trois systemes, trois commandes, et aucune n'est indispensable : si rien ne
+ * marche, on a de toute facon affiche l'adresse.
+ */
+function ouvrirNavigateur(url: string): void {
+  const commandes: Array<[string, string[]]> =
+    process.platform === 'darwin'
+      ? [['open', [url]]]
+      : process.platform === 'win32'
+        ? [['cmd', ['/c', 'start', '', url]]]
+        : [
+            ['xdg-open', [url]],
+            ['gio', ['open', url]],
+          ];
+  for (const [programme, args] of commandes) {
+    try {
+      const enfant = spawn(programme, args, { stdio: 'ignore', detached: true });
+      enfant.on('error', () => {});
+      enfant.unref();
+      return;
+    } catch {
+      // On essaie le suivant ; l'echec n'a rien de grave.
+    }
+  }
+}
+
 async function cmdServe(flags: Flags, cfg: ForgeConfig, logger: Logger): Promise<number> {
   const port = str(flags, 'port') ? Number.parseInt(str(flags, 'port')!, 10) : cfg.port;
   const host = str(flags, 'host') ?? cfg.host;
+  const studio = bool(flags, 'studio', false) === true;
   const { url } = await startServer({ ...cfg, port, host });
+
+  if (studio) {
+    const adresse = `${url}/studio`;
+    logger.success(`Studio ouvert sur ${color.bold(adresse)}`);
+    logger.info(
+      `  ${color.dim('décrivez, puis « Se connecter avec GitHub » — aucune clé à coller')}`,
+    );
+    logger.info(color.dim('\nCtrl+C pour arreter.'));
+    ouvrirNavigateur(adresse);
+    await new Promise<void>((resolve) => process.once('SIGINT', () => resolve()));
+    logger.info('arret.');
+    return 0;
+  }
 
   const router = new ModelRouter(cfg);
   const providers = router.configured().map((p) => p.name);
@@ -608,6 +652,10 @@ async function main(): Promise<number> {
     case 'serve':
     case 'server':
       return cmdServe(flags, cfg, logger);
+    case 'studio':
+      // Le chemin le plus court : le serveur demarre, le navigateur s'ouvre,
+      // et la connexion GitHub s'y fait sans clé.
+      return cmdServe({ ...flags, studio: true }, cfg, logger);
     case 'iterate':
     case 'edit':
     case 'modify':

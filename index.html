@@ -203,6 +203,13 @@
         margin: 12px 0 0; padding: 9px 12px; border-radius: 8px; font-size: 13px;
         background: var(--argile-pale); color: var(--rouge); border: 1px solid currentColor;
       }
+      .prefixe {
+        font: 13px var(--mono); color: var(--encre-pale); align-self: center; white-space: nowrap;
+      }
+      .commande-copiable {
+        font: 14px var(--mono); background: var(--creux); border: 1px solid var(--trait);
+        border-radius: 8px; padding: 12px 14px; margin: 0 0 12px; user-select: all; overflow-x: auto;
+      }
       .code-appareil {
         font: 700 30px/1.2 var(--mono); letter-spacing: 0.12em; color: var(--argile);
         background: var(--creux); border: 1px dashed var(--trait-fort); border-radius: 10px;
@@ -324,13 +331,13 @@
               en un seul commit, par l'API Git de GitHub.
             </p>
             <p>
-              <strong>Sans clé</strong>, quand c'est possible : GitHub affiche un code court, vous
-              le tapez chez lui, et c'est fini — le <em>device flow</em> d'OAuth, celui de
-              <code>gh auth login</code>. Il demande un processus sur votre machine, car ses deux
-              points d'entrée sont sur <code>github.com</code> et refusent les appels d'un autre
-              domaine ; <code>forge serve</code> le fournit, et sert cette page sur
-              <code>/studio</code>. Sinon, un jeton collé fait le même travail : dans les deux cas
-              il ne part que vers <code>api.github.com</code>.
+              <strong>Sans aucun jeton</strong> : GitHub affiche un code court, vous le tapez chez
+              lui, et ensuite il ne reste qu'à donner le nom du dépôt — le <em>device flow</em>
+              d'OAuth, celui de <code>gh auth login</code>. Il demande un programme sur votre
+              machine, car ses deux points d'entrée sont sur <code>github.com</code> et refusent
+              les appels d'un autre domaine ; <code>forge studio</code> le fournit et ouvre cette
+              page en local. Depuis une page hébergée ailleurs, un jeton collé fait le même
+              travail : dans les deux cas il ne part que vers <code>api.github.com</code>.
             </p>
           </details>
         </section>
@@ -359,13 +366,34 @@
 
           <div class="panneau depot" id="vue-github" role="tabpanel" aria-labelledby="tab-github" hidden>
             <!-- ------------------------ connexion ------------------------ -->
-            <!-- Sans clé : le device flow, quand un relais local le permet. -->
-            <section class="carte" id="carte-sans-cle" hidden>
-              <h3>Se connecter avec GitHub</h3>
-              <p class="fin-mot">
-                Aucune clé à coller : GitHub vous donne un code court, vous le tapez chez lui, et
-                c’est tout. C’est exactement ce que fait <code>gh auth login</code>.
+            <!-- ------------------------- connexion ----------------------- -->
+            <section class="carte" id="carte-sans-cle">
+              <h3>Se connecter à GitHub</h3>
+              <p class="fin-mot" id="promesse">
+                Aucune clé à coller : GitHub affiche un code court, vous le tapez chez lui, et c’est
+                tout. C’est le <em>device flow</em>, celui de <code>gh auth login</code>.
               </p>
+
+              <!-- Première fois seulement : l'identifiant public de l'application. -->
+              <div id="reglage-app" hidden>
+                <ol class="marche">
+                  <li>
+                    Ouvrez
+                    <a href="https://github.com/settings/applications/new" target="_blank" rel="noopener noreferrer">
+                      github.com → nouvelle application OAuth
+                    </a>
+                    — nom « Forge », URL au choix
+                  </li>
+                  <li>Enregistrez, puis cochez <strong>Enable Device Flow</strong></li>
+                  <li>Collez le <strong>Client ID</strong> ici — une seule fois, et ce n’est
+                    <em>pas</em> un secret :</li>
+                </ol>
+                <div class="ligne">
+                  <input type="text" id="client-id" placeholder="Ov23li…" spellcheck="false"
+                         autocomplete="off" aria-label="Client ID de l’application OAuth" />
+                  <button class="principal etroit" id="garder-app">Enregistrer</button>
+                </div>
+              </div>
 
               <button class="principal" id="ouvrir-session">Se connecter avec GitHub</button>
 
@@ -387,36 +415,43 @@
               <p class="alerte" id="erreur-sans-cle" hidden></p>
             </section>
 
-            <section class="carte" id="carte-connexion">
-              <h3>Se connecter à GitHub</h3>
-              <p class="fin-mot" id="pourquoi-jeton">
-                La page parle directement à <code>api.github.com</code>. Votre jeton ne passe par
-                aucun autre serveur — il ne quitte cet onglet que pour aller chez GitHub.
+            <!-- Servie en statique : la connexion sans clé demande un processus. -->
+            <section class="carte" id="carte-locale" hidden>
+              <h3>Se connecter sans clé</h3>
+              <p class="fin-mot">
+                GitHub ne laisse pas une page hébergée ailleurs mener cette connexion : les deux
+                points d’entrée du <em>device flow</em> sont sur <code>github.com</code> et refusent
+                les appels d’un autre domaine. Il faut donc un programme sur votre machine — une
+                commande, une fois :
+              </p>
+              <pre class="commande-copiable" id="commande-studio">forge studio</pre>
+              <p class="fin-mot">
+                Votre navigateur s’ouvre sur la même page, en local. Là, un bouton suffit : vous
+                vous connectez à GitHub, puis vous n’avez plus qu’à donner le nom du dépôt.
               </p>
 
-              <ol class="marche">
-                <li>
-                  Ouvrez
-                  <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">
-                    github.com → jeton d’accès personnel
-                  </a>
-                </li>
-                <li>Dépôts : <strong>All repositories</strong> (ou ceux que vous choisissez)</li>
-                <li>Permissions → <strong>Contents : Read and write</strong>, et
-                  <strong>Administration : Read and write</strong> pour créer le dépôt</li>
-                <li>Collez le jeton ici :</li>
-              </ol>
-
-              <div class="ligne">
-                <input type="password" id="jeton" placeholder="github_pat_… ou ghp_…"
-                       autocomplete="off" spellcheck="false" aria-label="Jeton d’accès GitHub" />
-                <button class="principal etroit" id="connecter">Se connecter</button>
-              </div>
-              <label class="case">
-                <input type="checkbox" id="memoriser" />
-                Garder le jeton dans ce navigateur (sinon il est oublié en fermant l’onglet)
-              </label>
-              <p class="alerte" id="erreur-connexion" hidden></p>
+              <details class="explication" style="border:0;padding-top:4px">
+                <summary>Ou publier maintenant avec un jeton</summary>
+                <ol class="marche" style="margin-top:10px">
+                  <li>
+                    <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">
+                      github.com → jeton d’accès personnel
+                    </a>
+                  </li>
+                  <li>Permissions → <strong>Contents</strong> et <strong>Administration</strong> :
+                    <em>Read and write</em></li>
+                </ol>
+                <div class="ligne">
+                  <input type="password" id="jeton" placeholder="github_pat_… ou ghp_…"
+                         autocomplete="off" spellcheck="false" aria-label="Jeton d’accès GitHub" />
+                  <button class="principal etroit" id="connecter">Se connecter</button>
+                </div>
+                <label class="case">
+                  <input type="checkbox" id="memoriser" />
+                  Garder le jeton dans ce navigateur
+                </label>
+                <p class="alerte" id="erreur-connexion" hidden></p>
+              </details>
             </section>
 
             <!-- ------------------------ publication ---------------------- -->
@@ -427,21 +462,32 @@
               </h3>
 
               <div class="champ">
-                <label for="nom-depot">Nom du dépôt</label>
-                <input type="text" id="nom-depot" spellcheck="false" autocomplete="off" />
-              </div>
-
-              <div class="champ">
-                <label for="message">Message de commit</label>
-                <input type="text" id="message" spellcheck="false" autocomplete="off" />
-              </div>
-
-              <div class="cases">
-                <label class="case"><input type="checkbox" id="prive" /> Dépôt privé</label>
-                <label class="case"><input type="checkbox" id="pages" checked /> Publier avec GitHub&nbsp;Pages</label>
+                <label for="nom-depot">Dépôt</label>
+                <div class="ligne">
+                  <span class="prefixe" id="prefixe-depot">github.com/…/</span>
+                  <input type="text" id="nom-depot" spellcheck="false" autocomplete="off"
+                         placeholder="mon-projet" />
+                </div>
               </div>
 
               <button class="principal" id="publier">Publier sur GitHub</button>
+              <p class="fin-mot" style="margin:10px 0 0">
+                Les fichiers partent d’ici vers <code>api.github.com</code>, et vers
+                <strong>aucun autre serveur</strong>.
+              </p>
+
+              <!-- Tout le reste a une valeur juste par défaut : on ne la demande pas. -->
+              <details class="explication" style="border:0;padding-top:12px">
+                <summary>Options</summary>
+                <div class="champ" style="margin-top:10px">
+                  <label for="message">Message de commit</label>
+                  <input type="text" id="message" spellcheck="false" autocomplete="off" />
+                </div>
+                <div class="cases">
+                  <label class="case"><input type="checkbox" id="prive" /> Dépôt privé</label>
+                  <label class="case"><input type="checkbox" id="pages" checked /> Publier avec GitHub&nbsp;Pages</label>
+                </div>
+              </details>
               <div class="jauge" id="jauge-envoi" hidden><i></i></div>
               <p class="alerte" id="erreur-publication" hidden></p>
 
@@ -769,12 +815,9 @@ python3 -m brain atelier --projet ./mon-projet</pre>
               compte = utilisateur;
               if (memoriser) retenirJeton(jeton); else oublierJeton();
 
-              $('carte-connexion').hidden = true;
-              $('carte-publication').hidden = false;
-              $('qui').textContent = 'Connecté : ' + utilisateur.login;
               $('connecter').disabled = false;
               $('connecter').textContent = 'Se connecter';
-              preparerPublication();
+              adopter(jeton, utilisateur.login);
             },
             function (probleme) {
               $('connecter').disabled = false;
@@ -805,11 +848,10 @@ python3 -m brain atelier --projet ./mon-projet</pre>
           // Se déconnecter doit tout effacer, y compris le jeton que le relais
           // garde sur la machine — sinon le rechargement nous reconnecterait.
           Device.session().then(function (s) {
-            if (s !== null) return Device.deconnecter().then(function () { return s; });
-            return null;
+            if (s === null) return null;
+            return Device.deconnecter().then(function () { return Device.session(); });
           }).then(function (s) {
-            montrerSansCle(s !== null, null);
-            $('carte-connexion').hidden = false;
+            montrerSansCle(s !== null, s);
             $('etape-code').hidden = true;
           });
         };
@@ -911,33 +953,30 @@ python3 -m brain atelier --projet ./mon-projet</pre>
            ================================================================== */
         var sessionEnCours = null;   // { annulee: bool }
 
+        /**
+         * Qui mène la connexion : le relais local (sans clé), ou personne.
+         *
+         * Sans relais, la page ne peut pas faire le device flow elle-même —
+         * ce n'est pas un choix de conception, c'est GitHub qui refuse les
+         * appels d'un autre domaine sur ces deux adresses-là.
+         */
         function montrerSansCle(possible, session) {
           $('carte-sans-cle').hidden = !possible;
-          if (!possible) {
-            // Servie en statique : on dit pourquoi, au lieu de laisser croire
-            // que le collage d'un jeton est une fatalité.
-            $('pourquoi-jeton').innerHTML =
-              'GitHub ne permet pas à une page seule de faire la connexion sans clé : les deux ' +
-              'points d’entrée du <em>device flow</em> vivent sur <code>github.com</code> et ' +
-              'refusent les appels d’un autre domaine. Pour l’avoir, lancez ' +
-              '<code>forge serve</code> et ouvrez <code>/studio</code> — sinon, un jeton fait ' +
-              'l’affaire. Dans les deux cas il ne part que vers <code>api.github.com</code>.';
-            return;
-          }
-          // Un relais existe : le collage devient le recours, pas la règle.
-          $('carte-connexion').hidden = Boolean(session && session.connecte);
-          $('pourquoi-jeton').textContent =
-            'Vous pouvez aussi coller un jeton — c’est le recours si vous préférez ne pas créer ' +
-            'd’application OAuth. Il ne part que vers api.github.com.';
+          $('carte-locale').hidden = possible;
+          if (!possible) return;
+          // Première fois : il manque l'identifiant public de l'application.
+          $('reglage-app').hidden = Boolean(session && session.clientIdConnu);
+          $('ouvrir-session').disabled = !(session && session.clientIdConnu);
         }
 
         function adopter(jeton, login) {
           client = new GitHub.Client(jeton);
           compte = { login: login };
           $('carte-sans-cle').hidden = true;
-          $('carte-connexion').hidden = true;
+          $('carte-locale').hidden = true;
           $('carte-publication').hidden = false;
           $('qui').textContent = 'Connecté : ' + login;
+          $('prefixe-depot').textContent = 'github.com/' + login + '/';
           preparerPublication();
         }
 
@@ -978,6 +1017,20 @@ python3 -m brain atelier --projet ./mon-projet</pre>
               if (moi.annulee) $('etape-code').hidden = true;
               if (sessionEnCours === moi) sessionEnCours = null;
             });
+        };
+
+        $('garder-app').onclick = function () {
+          var id = $('client-id').value.trim();
+          if (!id) { montrerErreur('erreur-sans-cle', 'Collez d’abord le Client ID.'); return; }
+          montrerErreur('erreur-sans-cle', '');
+          Device.retenirApplication(id).then(
+            function () {
+              $('reglage-app').hidden = true;
+              $('ouvrir-session').disabled = false;
+              $('ouvrir-session').click();
+            },
+            function (probleme) { montrerErreur('erreur-sans-cle', probleme.message); },
+          );
         };
 
         $('annuler-session').onclick = function () {

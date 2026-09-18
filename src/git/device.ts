@@ -223,7 +223,8 @@ export async function login(
 // Ou le jeton est garde
 // --------------------------------------------------------------------------- //
 export interface StoredCredentials {
-  token: string;
+  /** Absent quand on s'est deconnecte : l'application, elle, reste connue. */
+  token?: string;
   login?: string;
   scope?: string;
   clientId?: string;
@@ -234,11 +235,21 @@ export function credentialsPath(home: string): string {
   return path.join(home, 'github.json');
 }
 
-/** Lit le jeton enregistre, ou undefined. Ne leve jamais. */
+/**
+ * Lit ce qui est enregistre, ou undefined. Ne leve jamais.
+ *
+ * Le fichier peut ne contenir que l'identifiant d'application, sans jeton :
+ * c'est l'etat apres une deconnexion, et il faut le rendre tel quel — sinon il
+ * faudrait recoller cet identifiant a chaque fois. Un jeton vide est ramene a
+ * `undefined` pour que le reste du code n'ait qu'un cas d'absence a traiter.
+ */
 export function readCredentials(home: string): StoredCredentials | undefined {
   try {
     const brut = JSON.parse(fs.readFileSync(credentialsPath(home), 'utf8')) as StoredCredentials;
-    return typeof brut?.token === 'string' && brut.token ? brut : undefined;
+    if (!brut || typeof brut !== 'object') return undefined;
+    const token = typeof brut.token === 'string' && brut.token ? brut.token : undefined;
+    if (!token && !brut.clientId) return undefined;
+    return { ...brut, token };
   } catch {
     return undefined;
   }
@@ -253,7 +264,10 @@ export function readCredentials(home: string): StoredCredentials | undefined {
 export function writeCredentials(home: string, creds: StoredCredentials): string {
   fs.mkdirSync(home, { recursive: true });
   const cible = credentialsPath(home);
-  fs.writeFileSync(cible, `${JSON.stringify(creds, null, 2)}\n`, { mode: 0o600 });
+  // Un jeton vide ne s'ecrit pas : l'absence se dit par l'absence.
+  const propre: StoredCredentials = { ...creds };
+  if (!propre.token) delete propre.token;
+  fs.writeFileSync(cible, `${JSON.stringify(propre, null, 2)}\n`, { mode: 0o600 });
   try {
     fs.chmodSync(cible, 0o600);
   } catch {

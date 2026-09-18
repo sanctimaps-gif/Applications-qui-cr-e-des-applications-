@@ -201,6 +201,31 @@ class TestPagePublique(unittest.TestCase):
     def test_le_client_github_est_charge(self) -> None:
         self.assertIn('<script src="web/github.js"></script>', self.html)
 
+    def test_le_jeton_n_est_plus_le_chemin_normal(self) -> None:
+        """Le jeton ne doit plus etre ce qu'on voit en premier : la connexion
+        sans cle passe devant, et le collage se replie derriere un detail."""
+        sans_cle = self.html.index('id="carte-sans-cle"')
+        jeton = self.html.index('id="jeton"')
+        self.assertLess(sans_cle, jeton, "le jeton passe avant la connexion sans clé")
+        # Le champ vit dans un <details> replie, pas a l'air libre.
+        avant = self.html[:jeton]
+        self.assertIn("<details", avant[avant.rindex("<section") :])
+
+    def test_la_page_donne_la_commande_pour_se_passer_du_jeton(self) -> None:
+        self.assertIn('id="commande-studio"', self.html)
+        self.assertIn("forge studio", self.html)
+
+    def test_la_publication_ne_demande_que_le_depot(self) -> None:
+        """Une fois connecte, il ne doit rester qu'un champ a remplir."""
+        carte = self.html[self.html.index('id="carte-publication"') :]
+        carte = carte[: carte.index("</section>")]
+        visibles = re.findall(r'<div class="champ"[^>]*>\s*<label for="([a-z-]+)"', carte)
+        # « message » existe encore, mais range sous « Options ».
+        self.assertEqual(visibles[0], "nom-depot")
+        options = carte.index("<details")
+        self.assertLess(carte.index('id="nom-depot"'), options)
+        self.assertGreater(carte.index('id="message"'), options)
+
     def test_le_champ_du_jeton_est_masque_et_hors_formulaire_automatique(self) -> None:
         champ = re.search(r'<input[^>]*id="jeton"[^>]*>', self.html)
         self.assertIsNotNone(champ)
