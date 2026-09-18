@@ -9,6 +9,14 @@ import { GitHubClient } from '../git/github.js';
 import { Workspace } from '../fs/workspace.js';
 import { toError } from '../util/misc.js';
 import { JobQueue } from './jobs.js';
+import {
+  clearCredentials,
+  DEFAULT_SCOPE,
+  pollDeviceFlow,
+  readCredentials,
+  startDeviceFlow,
+  writeCredentials,
+} from '../git/device.js';
 import { EventBus } from '../util/events.js';
 import { LLMClient } from '../llm/client.js';
 import { publishProject } from '../pipeline/orchestrator.js';
@@ -16,6 +24,8 @@ import type { BuildOptions } from '../pipeline/types.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(HERE, 'public');
+/** La page generatrice vit a la racine du depot, pas dans `server/public`. */
+const STUDIO_DIR = path.resolve(HERE, '..', '..');
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -261,15 +271,125 @@ export function createServer(cfg: ForgeConfig = loadConfig()): {
       }
     }
 
+    // --- GitHub sans cle : relais du device flow -----------------------------
+    //
+    // Les deux points d'entree du device flow vivent sur github.com et ne
+    // renvoient aucun en-tete CORS : une page ne peut pas les appeler
+    // elle-meme. Ce relais les joint cote serveur, pour le compte de la page
+    // qu'il sert. Aucun en-tete CORS n'est emis en retour : seule une page
+    // servie par ce meme serveur peut donc lire ces reponses.
+    if (route.startsWith('/api/github')) {
+      // Garde-fou contre le « DNS rebinding » : un site distant qui ferait
+      // pointer son nom vers 127.0.0.1 deviendrait autrement de meme origine.
+      const hote = (req.headers.host ?? '').split(':')[0];
+      if (hote && !['localhost', '127.0.0.1', '[::1]', '::1'].includes(hote)) {
+        json(res, 403, { error: 'ce relais n’accepte que les connexions locales' });
+        return;
+      }
+
+      if (route === '/api/github/session' && req.method === 'GET') {
+        // Relu a chaque appel : la configuration a ete figee au demarrage du
+        // serveur, alors qu'une connexion peut survenir apres — et c'est
+        // precisement le cas quand on se connecte depuis cette page.
+        const enregistre = readCredentials(cfg.home);
+        const depuisEnv =
+          process.env['GITHUB_TOKEN'] ?? process.env['GH_TOKEN'] ?? process.env['FORGE_GITHUB_TOKEN'];
+        const jeton = depuisEnv ?? enregistre?.token;
+        json(res, 200, {
+          connecte: Boolean(jeton),
+          login: enregistre?.login,
+          jeton: jeton ?? null,
+          clientIdConnu: Boolean(cfg.github.clientId),
+          origine: depuisEnv ? 'environnement' : jeton ? 'login' : null,
+        });
+        return;
+      }
+
+      if (route === '/api/github/device' && req.method === 'POST') {
+        const body = (await readBody(req)) as { clientId?: string; scope?: string };
+        const clientId = body.clientId?.trim() || cfg.github.clientId;
+        if (!clientId) {
+          json(res, 400, {
+            error:
+              "Aucune application OAuth. Creez-en une sur https://github.com/settings/applications/new (cochez « Enable Device Flow »), puis passez son Client ID.",
+          });
+          return;
+        }
+        try {
+          const debut = await startDeviceFlow(clientId, { scope: body.scope ?? DEFAULT_SCOPE });
+          // `clientId` revient a la page : il est public, et il faut le
+          // renvoyer au sondage suivant.
+          json(res, 200, { ...debut, clientId });
+        } catch (error) {
+          json(res, 400, { error: toError(error).message });
+        }
+        return;
+      }
+
+      if (route === '/api/github/device/jeton' && req.method === 'POST') {
+        const body = (await readBody(req)) as { clientId?: string; deviceCode?: string };
+        const clientId = body.clientId?.trim() || cfg.github.clientId;
+        if (!clientId || !body.deviceCode) {
+          json(res, 400, { error: 'clientId et deviceCode requis' });
+          return;
+        }
+        try {
+          const verdict = await pollDeviceFlow(clientId, body.deviceCode);
+          if (verdict.status !== 'granted') {
+            json(res, 200, verdict);
+            return;
+          }
+          // Le jeton est garde la ou il doit l'etre : sur la machine, dans un
+          // fichier lisible par le seul proprietaire.
+          const client = new GitHubClient({ ...cfg, github: { ...cfg.github, token: verdict.token } });
+          const moi = await client.me();
+          writeCredentials(cfg.home, {
+            token: verdict.token,
+            login: moi.login,
+            scope: verdict.scope,
+            clientId,
+            obtainedAt: new Date().toISOString(),
+          });
+          json(res, 200, { status: 'granted', login: moi.login, jeton: verdict.token });
+        } catch (error) {
+          json(res, 400, { error: toError(error).message });
+        }
+        return;
+      }
+
+      if (route === '/api/github/logout' && req.method === 'POST') {
+        json(res, 200, { efface: clearCredentials(cfg.home) });
+        return;
+      }
+    }
+
     if (route.startsWith('/api')) {
       json(res, 404, { error: 'route inconnue' });
       return;
     }
 
     // --- Fichiers statiques ------------------------------------------------
-    const relative = route === '/' ? 'index.html' : route.slice(1);
-    const target = path.join(PUBLIC_DIR, relative);
-    if (!target.startsWith(PUBLIC_DIR)) {
+    //
+    // Deux pages coexistent : le tableau de bord (`/`), et le studio
+    // (`/studio`), la page generatrice de la racine du depot. Le studio est
+    // servi ici pour qu'il soit de MEME ORIGINE que le relais GitHub — c'est
+    // ce qui lui permet de se connecter sans qu'on colle quoi que ce soit.
+    let racine = PUBLIC_DIR;
+    let relative: string;
+    if (route === '/studio' || route === '/studio/') {
+      racine = STUDIO_DIR;
+      relative = 'index.html';
+    } else if (/^\/web\/[a-z0-9._-]+$/i.test(route)) {
+      // Un seul niveau, et un nom simple : le studio n'a pas besoin de plus,
+      // et cela ferme la porte a toute remontee de repertoire.
+      racine = STUDIO_DIR;
+      relative = route.slice(1);
+    } else {
+      relative = route === '/' ? 'index.html' : route.slice(1);
+    }
+
+    const target = path.join(racine, relative);
+    if (!target.startsWith(racine)) {
       json(res, 403, { error: 'interdit' });
       return;
     }

@@ -203,6 +203,14 @@
         margin: 12px 0 0; padding: 9px 12px; border-radius: 8px; font-size: 13px;
         background: var(--argile-pale); color: var(--rouge); border: 1px solid currentColor;
       }
+      .code-appareil {
+        font: 700 30px/1.2 var(--mono); letter-spacing: 0.12em; color: var(--argile);
+        background: var(--creux); border: 1px dashed var(--trait-fort); border-radius: 10px;
+        padding: 14px 16px; margin: 0 0 12px; text-align: center; user-select: all;
+      }
+      .replier { border: 0; background: none; color: var(--encre-pale); font-size: 12.5px;
+        cursor: pointer; padding: 0; text-decoration: underline; }
+
       .resultat { margin-top: 16px; border-top: 1px solid var(--trait); padding-top: 14px; }
       .resultat .ok { margin: 0 0 12px; font-size: 13.5px; color: var(--vert); }
       .liens { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -313,9 +321,16 @@
             </p>
             <p>
               L'onglet <strong>GitHub</strong> envoie ensuite le projet sur <em>votre</em> dépôt,
-              en un seul commit, par l'API Git de GitHub. Votre jeton reste dans cet onglet : il
-              part chez <code>api.github.com</code> et nulle part ailleurs, et n'est conservé que
-              si vous cochez la case.
+              en un seul commit, par l'API Git de GitHub.
+            </p>
+            <p>
+              <strong>Sans clé</strong>, quand c'est possible : GitHub affiche un code court, vous
+              le tapez chez lui, et c'est fini — le <em>device flow</em> d'OAuth, celui de
+              <code>gh auth login</code>. Il demande un processus sur votre machine, car ses deux
+              points d'entrée sont sur <code>github.com</code> et refusent les appels d'un autre
+              domaine ; <code>forge serve</code> le fournit, et sert cette page sur
+              <code>/studio</code>. Sinon, un jeton collé fait le même travail : dans les deux cas
+              il ne part que vers <code>api.github.com</code>.
             </p>
           </details>
         </section>
@@ -344,9 +359,37 @@
 
           <div class="panneau depot" id="vue-github" role="tabpanel" aria-labelledby="tab-github" hidden>
             <!-- ------------------------ connexion ------------------------ -->
+            <!-- Sans clé : le device flow, quand un relais local le permet. -->
+            <section class="carte" id="carte-sans-cle" hidden>
+              <h3>Se connecter avec GitHub</h3>
+              <p class="fin-mot">
+                Aucune clé à coller : GitHub vous donne un code court, vous le tapez chez lui, et
+                c’est tout. C’est exactement ce que fait <code>gh auth login</code>.
+              </p>
+
+              <button class="principal" id="ouvrir-session">Se connecter avec GitHub</button>
+
+              <div id="etape-code" hidden>
+                <p class="fin-mot" style="margin-top:14px">Tapez ce code sur GitHub :</p>
+                <p class="code-appareil" id="code-appareil">————</p>
+                <div class="liens">
+                  <a class="principal etroit" id="lien-appareil" target="_blank" rel="noopener noreferrer">
+                    Ouvrir GitHub et valider
+                  </a>
+                  <button class="discret" id="copier-code">Copier le code</button>
+                  <button class="discret" id="annuler-session">Annuler</button>
+                </div>
+                <p class="fin-mot" id="attente-session" style="margin-top:12px">
+                  J’attends votre validation…
+                </p>
+              </div>
+
+              <p class="alerte" id="erreur-sans-cle" hidden></p>
+            </section>
+
             <section class="carte" id="carte-connexion">
               <h3>Se connecter à GitHub</h3>
-              <p class="fin-mot">
+              <p class="fin-mot" id="pourquoi-jeton">
                 La page parle directement à <code>api.github.com</code>. Votre jeton ne passe par
                 aucun autre serveur — il ne quitte cet onglet que pour aller chez GitHub.
               </p>
@@ -454,6 +497,7 @@ python3 -m brain atelier --projet ./mon-projet</pre>
     <script src="web/moteur.js"></script>
     <script src="web/moteur-app.js"></script>
     <script src="web/github.js"></script>
+    <script src="web/device.js"></script>
     <script>
       (function () {
         'use strict';
@@ -756,9 +800,18 @@ python3 -m brain atelier --projet ./mon-projet</pre>
           oublierJeton();
           $('jeton').value = '';
           $('carte-publication').hidden = true;
-          $('carte-connexion').hidden = false;
           $('resultat').hidden = true;
           montrerErreur('erreur-publication', '');
+          // Se déconnecter doit tout effacer, y compris le jeton que le relais
+          // garde sur la machine — sinon le rechargement nous reconnecterait.
+          Device.session().then(function (s) {
+            if (s !== null) return Device.deconnecter().then(function () { return s; });
+            return null;
+          }).then(function (s) {
+            montrerSansCle(s !== null, null);
+            $('carte-connexion').hidden = false;
+            $('etape-code').hidden = true;
+          });
         };
 
         /** Propose un nom de dépôt et un message tirés du projet courant. */
@@ -847,19 +900,123 @@ python3 -m brain atelier --projet ./mon-projet</pre>
             });
         };
 
+        /* ==================================================================
+           Sans clé : le device flow d'OAuth
+
+           GitHub sert les deux points d'entrée du device flow sur github.com,
+           sans en-tête CORS : une page ne peut donc pas les appeler seule.
+           Quand `forge serve` sert cette page, un relais de même origine s'en
+           charge — et il n'y a plus rien à coller. Sinon, on l'explique et on
+           retombe sur le jeton.
+           ================================================================== */
+        var sessionEnCours = null;   // { annulee: bool }
+
+        function montrerSansCle(possible, session) {
+          $('carte-sans-cle').hidden = !possible;
+          if (!possible) {
+            // Servie en statique : on dit pourquoi, au lieu de laisser croire
+            // que le collage d'un jeton est une fatalité.
+            $('pourquoi-jeton').innerHTML =
+              'GitHub ne permet pas à une page seule de faire la connexion sans clé : les deux ' +
+              'points d’entrée du <em>device flow</em> vivent sur <code>github.com</code> et ' +
+              'refusent les appels d’un autre domaine. Pour l’avoir, lancez ' +
+              '<code>forge serve</code> et ouvrez <code>/studio</code> — sinon, un jeton fait ' +
+              'l’affaire. Dans les deux cas il ne part que vers <code>api.github.com</code>.';
+            return;
+          }
+          // Un relais existe : le collage devient le recours, pas la règle.
+          $('carte-connexion').hidden = Boolean(session && session.connecte);
+          $('pourquoi-jeton').textContent =
+            'Vous pouvez aussi coller un jeton — c’est le recours si vous préférez ne pas créer ' +
+            'd’application OAuth. Il ne part que vers api.github.com.';
+        }
+
+        function adopter(jeton, login) {
+          client = new GitHub.Client(jeton);
+          compte = { login: login };
+          $('carte-sans-cle').hidden = true;
+          $('carte-connexion').hidden = true;
+          $('carte-publication').hidden = false;
+          $('qui').textContent = 'Connecté : ' + login;
+          preparerPublication();
+        }
+
+        $('ouvrir-session').onclick = function () {
+          montrerErreur('erreur-sans-cle', '');
+          var bouton = $('ouvrir-session');
+          bouton.disabled = true;
+          bouton.textContent = 'Demande du code…';
+          var moi = { annulee: false };
+          sessionEnCours = moi;
+
+          Device.commencer()
+            .then(function (debut) {
+              $('etape-code').hidden = false;
+              $('code-appareil').textContent = debut.userCode;
+              $('lien-appareil').href = debut.verificationUri;
+              $('attente-session').textContent = 'J’attends votre validation…';
+              bouton.textContent = 'Code demandé';
+              // On ouvre GitHub pour eux : ce clic vient d'un geste utilisateur,
+              // donc le navigateur ne le bloquera pas.
+              window.open(debut.verificationUri, '_blank', 'noopener');
+              return Device.attendre(debut, {
+                annule: function () { return moi.annulee; },
+                onAttente: function () { $('attente-session').textContent = 'J’attends votre validation…'; },
+              });
+            })
+            .then(function (verdict) {
+              if (moi.annulee) return;
+              adopter(verdict.jeton, verdict.login);
+              $('etape-code').hidden = true;
+            })
+            .catch(function (probleme) {
+              if (!moi.annulee) montrerErreur('erreur-sans-cle', probleme.message);
+            })
+            .then(function () {
+              bouton.disabled = false;
+              bouton.textContent = 'Se connecter avec GitHub';
+              if (moi.annulee) $('etape-code').hidden = true;
+              if (sessionEnCours === moi) sessionEnCours = null;
+            });
+        };
+
+        $('annuler-session').onclick = function () {
+          if (sessionEnCours) sessionEnCours.annulee = true;
+          $('etape-code').hidden = true;
+        };
+
+        $('copier-code').onclick = function () {
+          navigator.clipboard.writeText($('code-appareil').textContent).then(
+            function () {
+              $('copier-code').textContent = 'Copié';
+              setTimeout(function () { $('copier-code').textContent = 'Copier le code'; }, 1500);
+            },
+            function () { $('copier-code').textContent = 'Refusé'; },
+          );
+        };
+
         /* ------------------------------------------------------ démarrage */
         var accueil = "Un site chaleureux pour mon restaurant Le Tilleul à Annecy";
         $('demande').value = accueil;
         creer(accueil);
 
-        // Un jeton déjà mémorisé reconnecte tout seul. S'il a été révoqué
-        // entre-temps, on l'oublie sans rien reprocher à personne.
-        var garde = jetonRetenu();
-        if (garde) {
-          $('jeton').value = garde;
-          $('memoriser').checked = true;
-          connecter(garde, true).catch(function () { oublierJeton(); $('jeton').value = ''; });
-        }
+        // Le relais d'abord : s'il répond, la connexion sans clé est possible,
+        // et il sait peut-être déjà qui nous sommes (`forge login`).
+        Device.session().then(function (s) {
+          montrerSansCle(s !== null, s);
+          if (s && s.connecte && s.jeton) {
+            adopter(s.jeton, s.login || 'votre compte');
+            return;
+          }
+          // Sinon, un jeton mémorisé dans ce navigateur reconnecte tout seul.
+          // S'il a été révoqué entre-temps, on l'oublie sans rien reprocher.
+          var garde = jetonRetenu();
+          if (garde) {
+            $('jeton').value = garde;
+            $('memoriser').checked = true;
+            connecter(garde, true).catch(function () { oublierJeton(); $('jeton').value = ''; });
+          }
+        });
       })();
     </script>
   </body>

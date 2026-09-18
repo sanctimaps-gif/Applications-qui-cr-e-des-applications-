@@ -7,6 +7,14 @@ import { Logger, color } from './util/logger.js';
 import { LLMClient } from './llm/client.js';
 import { ModelRouter } from './providers/registry.js';
 import { GitHubClient } from './git/github.js';
+import {
+  clearCredentials,
+  credentialsPath,
+  DEFAULT_SCOPE,
+  login as deviceLogin,
+  readCredentials,
+  writeCredentials,
+} from './git/device.js';
 import { Workspace } from './fs/workspace.js';
 import { buildApp, publishProject } from './pipeline/orchestrator.js';
 import { iterateProject } from './pipeline/iterate.js';
@@ -55,6 +63,8 @@ const HELP = `${color.bold('forge')} — genere des applications completes avec 
 ${color.bold('USAGE')}
   forge new "<description>" [options]
   forge iterate <repertoire> "<modification>" [options]
+  forge login [--client-id <id>]
+  forge logout
   forge serve [--port 7331] [--host 127.0.0.1]
   forge publish <repertoire> [--repo nom] [--public]
   forge providers
@@ -471,18 +481,105 @@ async function cmdDoctor(cfg: ForgeConfig, logger: Logger): Promise<number> {
 
   logger.info('');
   logger.info(color.bold('GitHub'));
+  const enregistre = readCredentials(cfg.home);
   if (!GitHubClient.isConfigured(cfg)) {
-    logger.info(`  ${color.dim('○')} GITHUB_TOKEN absent`);
+    logger.info(`  ${color.dim('○')} non connecte — ${color.bold('forge login')} (aucune cle a coller)`);
   } else {
+    // D'ou vient le jeton compte autant que sa validite : sinon on ne sait
+    // pas lequel des deux on est en train de tester.
+    const origine = process.env['GITHUB_TOKEN'] ?? process.env['GH_TOKEN'] ?? process.env['FORGE_GITHUB_TOKEN']
+      ? "variable d'environnement"
+      : `forge login (${credentialsPath(cfg.home)})`;
     try {
       const me = await new GitHubClient(cfg).me();
-      logger.info(`  ${color.green('●')} connecte en tant que ${me.login}`);
+      logger.info(`  ${color.green('●')} connecte en tant que ${me.login} ${color.dim(`— ${origine}`)}`);
+      if (enregistre?.scope) logger.info(`  ${color.dim(`droits : ${enregistre.scope}`)}`);
     } catch (error) {
-      logger.info(`  ${color.red('✖')} ${toError(error).message.slice(0, 200)}`);
+      logger.info(`  ${color.red('✖')} ${toError(error).message.slice(0, 200)} ${color.dim(`— ${origine}`)}`);
     }
   }
 
   return configured.length > 0 ? 0 : 1;
+}
+
+/**
+ * Connexion a GitHub sans coller de cle.
+ *
+ * Le `client_id` d'une application OAuth est public : il n'y a donc aucun
+ * secret a garder, ni ici, ni dans le depot. Ce qui est secret — le jeton —
+ * est remis par GitHub apres que vous avez valide le code, et il ne passe
+ * jamais par un tiers.
+ */
+const AIDE_APPLICATION = `Il manque l'identifiant d'une application OAuth GitHub (client_id).
+C'est une valeur publique, a creer une seule fois, en moins d'une minute :
+
+  1. ${color.bold('https://github.com/settings/applications/new')}
+  2. Nom : « Forge » — URL : n'importe laquelle (ex. https://github.com)
+  3. Enregistrez, puis cochez ${color.bold('Enable Device Flow')}
+  4. Copiez le ${color.bold('Client ID')} affiche (pas de secret a generer)
+
+Puis :
+
+  forge login --client-id Ov23li...
+  # ou, une fois pour toutes :
+  export FORGE_GITHUB_CLIENT_ID=Ov23li...`;
+
+async function cmdLogin(flags: Flags, cfg: ForgeConfig, logger: Logger): Promise<number> {
+  const clientId = str(flags, 'clientId') ?? cfg.github.clientId;
+  if (!clientId) {
+    logger.error("aucun identifiant d'application OAuth");
+    process.stdout.write(`\n${AIDE_APPLICATION}\n`);
+    return 2;
+  }
+
+  const scope = str(flags, 'scope') ?? DEFAULT_SCOPE;
+  logger.info('Connexion a GitHub — aucune cle a coller.');
+
+  try {
+    const { token, scope: obtenu } = await deviceLogin(clientId, {
+      scope,
+      onCode: (debut) => {
+        process.stdout.write(
+          `\n  Ouvrez ${color.bold(debut.verificationUri)}\n` +
+            `  et tapez le code ${color.bold(debut.userCode)}\n\n` +
+            `  ${color.dim(`(valable ${Math.round(debut.expiresIn / 60)} min — j'attends ici)`)}\n\n`,
+        );
+      },
+    });
+
+    // On verifie tout de suite a qui appartient le jeton : un « connecte »
+    // qui n'a jamais ete confronte a l'API ne vaut rien.
+    const client = new GitHubClient({ ...cfg, github: { ...cfg.github, token } });
+    const moi = await client.me();
+
+    const fichier = writeCredentials(cfg.home, {
+      token,
+      login: moi.login,
+      scope: obtenu || scope,
+      clientId,
+      obtainedAt: new Date().toISOString(),
+    });
+
+    logger.success(`connecte en tant que ${moi.login}`);
+    logger.info(`  jeton enregistre dans ${color.dim(fichier)} (lisible par vous seul)`);
+    logger.info(`  ${color.dim('forge logout pour l’effacer')}`);
+    return 0;
+  } catch (error) {
+    logger.error(toError(error).message);
+    return 1;
+  }
+}
+
+function cmdLogout(cfg: ForgeConfig, logger: Logger): number {
+  if (clearCredentials(cfg.home)) {
+    logger.success('jeton efface');
+    logger.info(
+      `  ${color.dim('revoquez-le aussi sur https://github.com/settings/applications si vous le souhaitez')}`,
+    );
+  } else {
+    logger.info(`aucun jeton enregistre (${color.dim(credentialsPath(cfg.home))})`);
+  }
+  return 0;
 }
 
 async function main(): Promise<number> {
@@ -522,6 +619,10 @@ async function main(): Promise<number> {
     case 'stacks':
     case 'recipes':
       return cmdStacks(logger);
+    case 'login':
+      return cmdLogin(flags, cfg, logger);
+    case 'logout':
+      return cmdLogout(cfg, logger);
     case 'doctor':
       return cmdDoctor(cfg, logger);
     case 'cache':

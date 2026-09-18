@@ -1,6 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
+import { readCredentials } from './git/device.js';
 
 /**
  * Convention Forge : **0 signifie « aucune limite »** pour tous les compteurs.
@@ -51,6 +52,8 @@ export interface ForgeConfig {
     token: string | undefined;
     apiUrl: string;
     owner: string | undefined;
+    /** Application OAuth utilisee par `forge login` (public, jamais secret). */
+    clientId: string | undefined;
   };
 }
 
@@ -165,9 +168,17 @@ export function loadConfig(overrides: Partial<ForgeConfig> = {}): ForgeConfig {
     host: env('FORGE_HOST') ?? fileCfg.host ?? '127.0.0.1',
     authToken: env('FORGE_AUTH_TOKEN'),
     github: {
-      token: env('GITHUB_TOKEN') ?? env('GH_TOKEN') ?? env('FORGE_GITHUB_TOKEN'),
+      // L'environnement d'abord, puis le jeton obtenu par `forge login`. Ainsi
+      // une variable posee pour une commande precise l'emporte toujours, et
+      // sans variable on reste connecte sans avoir rien a coller.
+      token:
+        env('GITHUB_TOKEN') ??
+        env('GH_TOKEN') ??
+        env('FORGE_GITHUB_TOKEN') ??
+        readCredentials(home)?.token,
       apiUrl: (env('GITHUB_API_URL') ?? 'https://api.github.com').replace(/\/+$/, ''),
       owner: env('GITHUB_OWNER'),
+      clientId: env('FORGE_GITHUB_CLIENT_ID') ?? readCredentials(home)?.clientId,
     },
     ...overrides,
   };

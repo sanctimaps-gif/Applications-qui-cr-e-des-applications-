@@ -216,6 +216,21 @@ class TestPagePublique(unittest.TestCase):
         self.assertIn("api.github.com", self.html)
         self.assertIn("aucun autre serveur", self.html)
 
+    def test_le_client_du_device_flow_est_charge(self) -> None:
+        self.assertIn('<script src="web/device.js"></script>', self.html)
+
+    def test_la_page_propose_la_connexion_sans_cle(self) -> None:
+        self.assertIn('id="carte-sans-cle"', self.html)
+        self.assertIn('id="ouvrir-session"', self.html)
+        self.assertIn('id="code-appareil"', self.html)
+
+    def test_la_page_explique_pourquoi_le_jeton_reste_necessaire_en_statique(self) -> None:
+        """Les deux points d'entree du device flow sont sur github.com et
+        refusent les appels d'un autre domaine : le dire vaut mieux que laisser
+        croire que coller un jeton est une fatalite."""
+        self.assertIn("device flow", self.html)
+        self.assertIn("forge serve", self.html)
+
     def test_la_page_ne_promet_plus_que_rien_ne_sort(self) -> None:
         """Publier envoie le projet chez GitHub : la promesse d'origine
         (« rien ne sort de votre navigateur ») serait devenue fausse."""
